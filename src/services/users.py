@@ -29,6 +29,9 @@ class UsersTable():
         self.users.append(student)
         return student
 
+    def get_students(self, group_id: uuid.UUID) -> List[Student]:
+        return filter(lambda student: student.group_id == group_id, self.users)
+
     # endregion
 
 
