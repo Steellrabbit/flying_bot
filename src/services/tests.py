@@ -4,6 +4,7 @@ import numpy as np
 import random
 from typing import List, Union
 from datetime import datetime
+from pathlib import Path
 
 from ..models.test import RawTest, Test, TestQuestion, RawTestQuestion, TestVariant, StudentWrittenTest, WrittenTest, TestAnswer
 
@@ -16,11 +17,11 @@ class TestsTable():
 
     def create_test(self, source: RawTest) -> Test:
         filename = source.filename
+        name = Path(source.filename).stem
         id = uuid.uuid4()
         variants = self.__parse_test_file(filename)
         
-        test = Test(filename, id, variants)
-        print(test)
+        test = Test(filename, id, name, variants)
         self.entities.append(test)
         return test
 
@@ -62,13 +63,13 @@ class TestsTable():
 
     def start_test(self,
             test_id: uuid.UUID,
-            student_ids: List[uuid.UUID]) -> None:
+            student_ids: List[uuid.UUID]) -> WrittenTest:
         test = self.get_test(test_id)
         if test is None:
             raise Exception('Test was not found')
 
         id = uuid.uuid4()
-        start_time = datetime()
+        start_time = datetime.today()
         finish_time = None
         student_tests: List[StudentWrittenTest] = []
 
@@ -77,11 +78,12 @@ class TestsTable():
             finish_time = None
             variant_id = self.get_random_variant(test_id).id
             answers = []
-            student_test = StudentWrittenTest(id, variant_id, finish_time, student_id, answers)
+            student_test = StudentWrittenTest(id, finish_time, student_id, variant_id, answers)
             student_tests.append(student_test)
 
         written_test = WrittenTest(id, test_id, start_time, finish_time, student_tests)
         self.written.append(written_test)
+        return written_test
 
     def get_written_test(self, id: uuid.UUID) -> Union[WrittenTest, None]:
         for entity in self.written:
@@ -94,7 +96,7 @@ class TestsTable():
         if test is None:
             raise Exception('Written test was not found')
 
-        finish_time = datetime()
+        finish_time = datetime.today()
         test.finish_time = finish_time
         for student_test in test.student_tests:
             if student_test.finish_time is None:
@@ -107,13 +109,13 @@ class TestsTable():
         if student_test is None:
             raise Exception('Written test was not found')
 
-        finish_time = datetime()
+        finish_time = datetime.today()
         student_test.finish_time = finish_time
 
     def get_student_test(self,
             written_test_id: uuid.UUID,
             student_id: uuid.UUID) -> Union[StudentWrittenTest, None]:
-        test = self.get_written_test(student_id)
+        test = self.get_written_test(written_test_id)
         if test is None:
             return None
 
@@ -131,6 +133,9 @@ class TestsTable():
         mark = None
         answer = TestAnswer(id, question_id, text, mark)
         test = self.get_student_test(written_test_id, student_id)
+        if test is None:
+            raise Exception('Written test was not found')
+
         test.answers.append(answer)
 
 

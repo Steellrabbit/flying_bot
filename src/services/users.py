@@ -1,3 +1,4 @@
+import uuid
 from typing import List, Union
 
 from ..models.user import User, Student, RawStudent

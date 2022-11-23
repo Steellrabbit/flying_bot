@@ -54,6 +54,7 @@ class RawTest:
 @dataclass
 class Test(RawTest):
     id: uuid.UUID
+    name: str
     variants: List[TestVariant]
 
 # endregion
@@ -62,27 +63,26 @@ class Test(RawTest):
 # region Written test
 
 @dataclass
-class WrittenTest:
+class TestAnswer:
     id: uuid.UUID
-    test_id: uuid.UUID
-    start_time: datetime
-    finish_time: Union[datetime, None]
-    student_tests: List[StudentWrittenTest]
+    question_id: uuid.UUID
+    text: str
+    mark: Union[float, None]
 
 @dataclass
 class StudentWrittenTest:
     id: uuid.UUID
     finish_time: Union[datetime, None]
     student_id: uuid.UUID
+    variant_id: uuid.UUID
     answers: List[TestAnswer]
 
 @dataclass
-class TestAnswer:
+class WrittenTest:
     id: uuid.UUID
     test_id: uuid.UUID
-    variant_id: uuid.UUID
-    question_id: uuid.UUID
-    text: str
-    mark: Union[float, None]
+    start_time: datetime
+    finish_time: Union[datetime, None]
+    student_tests: List[StudentWrittenTest]
 
 # endregion
