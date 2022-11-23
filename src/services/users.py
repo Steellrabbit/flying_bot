@@ -1,3 +1,4 @@
+import uuid
 from typing import List, Union
 
 from ..models.user import User, Student, RawStudent
@@ -28,6 +29,9 @@ class UsersTable():
         student = Student(source.id, False, source.name, source.group_id)
         self.users.append(student)
         return student
+
+    def get_students(self, group_id: uuid.UUID) -> List[Student]:
+        return filter(lambda student: student.group_id == group_id, self.users)
 
     # endregion
 
