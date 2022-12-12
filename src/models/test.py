@@ -1,7 +1,6 @@
 import uuid
 from dataclasses import dataclass
 from enum import Enum
-from typing import Union, List
 from datetime import datetime
 
 
@@ -16,7 +15,7 @@ class RawTestQuestion:
     id: uuid.UUID
     type: TestAnswerType
     text: str
-    answer: Union[str, None]
+    answer: str | None
     max_mark: float
 
 @dataclass
@@ -29,7 +28,7 @@ class FreeTestQuestion(RawTestQuestion):
     type: TestAnswerType.FREE
     answer: None
 
-TestQuestion = Union[LectureTestQuestion, FreeTestQuestion]
+TestQuestion = LectureTestQuestion | FreeTestQuestion
 
 # endregion
 
@@ -40,7 +39,7 @@ TestQuestion = Union[LectureTestQuestion, FreeTestQuestion]
 class TestVariant:
     id: uuid.UUID
     name: str
-    questions: List[TestQuestion]
+    questions: list[TestQuestion]
 
 # endregion
 
@@ -55,7 +54,7 @@ class RawTest:
 class Test(RawTest):
     id: uuid.UUID
     name: str
-    variants: List[TestVariant]
+    variants: list[TestVariant]
 
 # endregion
 
@@ -67,22 +66,22 @@ class TestAnswer:
     id: uuid.UUID
     question_id: uuid.UUID
     text: str
-    mark: Union[float, None]
+    mark: float | None
 
 @dataclass
 class StudentWrittenTest:
     id: uuid.UUID
-    finish_time: Union[datetime, None]
+    finish_time: datetime | None
     student_id: int
     variant_id: uuid.UUID
-    answers: List[TestAnswer]
+    answers: list[TestAnswer]
 
 @dataclass
 class WrittenTest:
     id: uuid.UUID
     test_id: uuid.UUID
     start_time: datetime
-    finish_time: Union[datetime, None]
-    student_tests: List[StudentWrittenTest]
+    finish_time: datetime | None
+    student_tests: list[StudentWrittenTest]
 
 # endregion

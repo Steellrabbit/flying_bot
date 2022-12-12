@@ -1,5 +1,4 @@
 import uuid
-from typing import List, Union
 
 from ..models.user import User, Student, RawStudent
 
@@ -7,7 +6,7 @@ from ..models.user import User, Student, RawStudent
 class UsersTable():
 
     def __init__(self) -> None:
-        self.users: List[User] = []
+        self.users: list[User] = []
 
 
     # region Tutor
@@ -30,15 +29,15 @@ class UsersTable():
         self.users.append(student)
         return student
 
-    def get_students(self, group_id: uuid.UUID) -> List[Student]:
-        return filter(lambda user: not user.is_tutor and user.group_id == group_id, self.users)
+    def get_students(self, group_id: uuid.UUID) -> list[Student]:
+        return filter(lambda u: not u.is_tutor and u.group_id == group_id, self.users)
 
     # endregion
 
 
     # region User
 
-    def get_user(self, id: int) -> Union[User, None]:
+    def get_user(self, id: int) -> User | None:
         search_result = [user for user in self.users if user.id == id]
         if len(search_result) == 0:
             return None
