@@ -1,8 +1,7 @@
 import telegram as tg
 import telegram.ext as tg_ext
 
-from models.user import RawStudent
-
+from ..models.user import RawStudent
 from ..models.group import RawGroup
 from .db import DataBase
 from .dialogs import StudentSettingsBranch, TutorSettingsBranch, student_settings_branch, tutorStartDialog

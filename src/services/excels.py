@@ -1,12 +1,11 @@
 import uuid
-from typing import List, Dict
 from pathlib import Path
 
 import pandas as pd
 import xlsxwriter as xls
 
 from ..models.excel import WrittenTestExcel
-from ..models.test import RawTest, Test 
+from ..models.test import RawTest, Test, TestQuestion, TestVariant
 
 
 class ExcelService():
@@ -24,8 +23,8 @@ class ExcelService():
 
         return Test(filename, id, name, variants)
 
-    def __read_variants(self, excel: pd.DataFrame) -> List[TestVariant]:
-        variants: List[TestVariant] = []
+    def __read_variants(self, excel: pd.DataFrame) -> list[TestVariant]:
+        variants: list[TestVariant] = []
 
         for sheet_name in frame.keys():
             id = uuid.uuid4()
@@ -38,8 +37,8 @@ class ExcelService():
 
         return variants
 
-    def __read_questions(self, sheet: pd.DataFrame) -> List[TestQuestion]:
-        questions: List[TestQuestion] = []
+    def __read_questions(self, sheet: pd.DataFrame) -> list[TestQuestion]:
+        questions: list[TestQuestion] = []
 
         for row in sheet.to_dict(orient='records'):
             id = uuid.uuid4()
