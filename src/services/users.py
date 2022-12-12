@@ -30,7 +30,7 @@ class UsersTable():
         return student
 
     def get_students(self, group_id: uuid.UUID) -> list[Student]:
-        return filter(lambda student: student.group_id == group_id, self.users)
+        return filter(lambda u: not u.is_tutor and u.group_id == group_id, self.users)
 
     # endregion
 

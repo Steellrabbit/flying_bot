@@ -160,7 +160,7 @@ class TestsTable():
 
     def finish_student(self,
             written_test_id: uuid.UUID,
-            student_id: uuid.UUID) -> None:
+            student_id: int) -> None:
         student_test = self.get_student(written_test_id, 'student_id', student_id)
         if student_test is None:
             raise Exception('Written test was not found')
@@ -177,7 +177,7 @@ class TestsTable():
         return get_from_list(test.student_tests, student_test_prop, value)
 
     def save_answer(self,
-            student_id: uuid.UUID,
+            student_id: int,
             written_test_id: uuid.UUID,
             question_id: uuid.UUID,
             text: str) -> None:
