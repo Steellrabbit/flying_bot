@@ -73,7 +73,7 @@ class TestAnswer:
 class StudentWrittenTest:
     id: uuid.UUID
     finish_time: Union[datetime, None]
-    student_id: uuid.UUID
+    student_id: int
     variant_id: uuid.UUID
     answers: List[TestAnswer]
 

@@ -104,7 +104,7 @@ class TestsTable():
 
     def finish_student_test(self,
             written_test_id: uuid.UUID,
-            student_id: uuid.UUID) -> None:
+            student_id: int) -> None:
         student_test = self.get_student_test(written_test_id, student_id)
         if student_test is None:
             raise Exception('Written test was not found')
@@ -114,7 +114,7 @@ class TestsTable():
 
     def get_student_test(self,
             written_test_id: uuid.UUID,
-            student_id: uuid.UUID) -> Union[StudentWrittenTest, None]:
+            student_id: int) -> Union[StudentWrittenTest, None]:
         test = self.get_written_test(written_test_id)
         if test is None:
             return None
@@ -125,7 +125,7 @@ class TestsTable():
         return None;
 
     def save_question_answer(self,
-            student_id: uuid.UUID,
+            student_id: int,
             written_test_id: uuid.UUID,
             question_id: uuid.UUID,
             text: str) -> None:
@@ -168,7 +168,7 @@ class TestsTable():
             test_id: uuid.UUID,
             variant_id: uuid.UUID,
             index: Union[int, None] = None,
-            question_id: [uuid.UUID, None] = None) -> Union[TestQuestion, None]:
+            question_id: Union[uuid.UUID, None] = None) -> Union[TestQuestion, None]:
         variant = self.get_variant(test_id, variant_id)
         if variant is None:
             return None
