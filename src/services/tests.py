@@ -4,6 +4,7 @@ from typing import Any
 from datetime import datetime
 from pathlib import Path
 
+from pymongo import database
 import pandas as pd
 import numpy as np
 import Levenshtein
@@ -22,13 +23,20 @@ from ..models.test import RawTest, Test, TestQuestion,\
 from ..utils.get_from_list import get_from_list
 
 
+TEST_COLLECTION = 'tests'
+WRITTEN_TEST_COLLECTION = 'written-tests'
+
 class TestsTable():
 
-    def __init__(self) -> None:
+    def __init__(self,
+            db: database.Database) -> None:
+        self.__collection = db[TEST_COLLECTION]
+        self.__written_collection = db[WRITTEN_TEST_COLLECTION]
+
         self.entities: list[Test] = []
         self.written: list[WrittenTest] = []
-        self.__students = UsersTable()
-        self.__groups = GroupsTable()
+        self.__students = UsersTable(db)
+        self.__groups = GroupsTable(db)
         self.__excel = ExcelService()
 
 
@@ -36,17 +44,24 @@ class TestsTable():
 
     def create(self, source: RawTest) -> Test:
         test = self.__excel.read_test(source)
-        self.entities.append(test)
-        return test
+
+        doc = { 'filename': test.filename, 'name': test.name, 'variants': variants }
+        insert_result = self.__collection.insert_one(doc)
+        found = self.__collection.find_one({ '_id': insert_result.inserted_id })
+
+        return self.__test_from_document(found)
 
     def get(self, property: str, value: Any) -> Test | None:
-        return get_from_list(self.entities, property, value)
+        found = self.__collection.find_one({ property: value })
+        if found is None: return
+        return self.__test_from_document(found)
 
     def get_many(self) -> list[Test]:
-        return self.entities
+        found = self.__collection.find()
+        return list(map(lambda doc: self.__test_from_document(doc), found))
 
     def __convert_to_excel(self, written_test: WrittenTest) -> WrittenTestExcel:
-        test: Test = self.get('id', written_test.test_id)
+        test: Test = self.get('_id', written_test.test_id)
 
         groups: dict[list[WrittentTestStudentData]] = dict()
 
@@ -76,7 +91,7 @@ class TestsTable():
             for student_test in student_tests:
                 student: Student = self.__students.get_user(test.student_id)
                 student_name = student.name
-                group: Group = self.__groups.get('id', student.group_id)
+                group: Group = self.__groups.get('_id', student.group_id)
                 student_group = group.name
 
                 answer_data: list[WrittenTestStudentAnswer] = []
@@ -112,6 +127,9 @@ class TestsTable():
         summary_sheet = WrittenTestSummarySheet(group_data)
         return WrittenTestExcel(test.name, written_test.finish_time, variant_sheet, summary_sheet)
 
+    def __test_from_document(doc: dict) -> Test:
+        return Test(doc['filename'], doc['_id'], doc['name'], doc['variants'])
+
     # endregion
 
 
@@ -120,7 +138,7 @@ class TestsTable():
     def start(self,
             test_id: uuid.UUID,
             student_ids: list[uuid.UUID]) -> WrittenTest:
-        test = self.get('id', test_id)
+        test = self.get('_id', test_id)
         if test is None:
             raise Exception('Test was not found')
 
@@ -137,15 +155,18 @@ class TestsTable():
             student_test = StudentWrittenTest(id, finish_time, student_id, variant_id, answers)
             student_tests.append(student_test)
 
-        written_test = WrittenTest(id, test_id, start_time, finish_time, student_tests)
-        self.written.append(written_test)
-        return written_test
+        doc = { 'test_id': test_id, 'start_time': start_time, 'finish_time': finish_time, 'student_tests': student_tests }
+        insert_result = self.__written_collection.insert_one(doc)
+        found = self.__collection.find_one({ '_id': insert_result.inserted_id })
+        return self.__written_from_document(found)
 
     def get_written(self, property: str, value: Any) -> WrittenTest | None:
-        return get_from_list(self.written, property, value)
+        found = self.__written_collection.find_one({ property: value })
+        if found is None: return
+        return self.__written_from_document(found)
 
-    def finish(self, written_test_id: uuid.UUID) -> None:
-        test = self.get_written('id', written_test_id)
+    def finish(self, written_test_id: uuid.UUID) -> str:
+        test = self.get_written('_id', written_test_id)
         if test is None:
             raise Exception('Written test was not found')
 
@@ -156,7 +177,7 @@ class TestsTable():
                 student_test.finish_time = finish_time
 
         excel = self.__convert_to_excel(test)
-        self.__excel.write_written_test(excel)
+        return self.__excel.write_written_test(excel)
 
     def finish_student(self,
             written_test_id: uuid.UUID,
@@ -172,7 +193,7 @@ class TestsTable():
             written_test_id: uuid.UUID,
             student_test_prop: str,
             value: Any) -> StudentWrittenTest | None:
-        test = self.get_written('id', written_test_id)
+        test = self.get_written('_id', written_test_id)
         if test is None: return None
         return get_from_list(test.student_tests, student_test_prop, value)
 
@@ -182,7 +203,7 @@ class TestsTable():
             question_id: uuid.UUID,
             text: str) -> None:
         student_test = self.get_student(written_test_id, 'student_id', student_id)
-        written_test = self.get_written('id', written_test_id)
+        written_test = self.get_written('_id', written_test_id)
         question = self.get_question(written_test.test_id,\
                 student_test.variant_id)
 
@@ -193,6 +214,9 @@ class TestsTable():
         if student_test is None:
             raise Exception('Written test was not found')
         student_test.answers.append(answer)
+
+    def __written_from_document(doc: dict) -> Test:
+        return WrittenTest(doc['_id'], doc['test_id'], doc['start_time'], doc['finish_time'], doc['student_tests'])
 
     # endregion
 
@@ -213,7 +237,7 @@ class TestsTable():
     # region Variants
 
     def get_random_variant(self, test_id: uuid.UUID) -> TestVariant | None:
-        test = self.get('id', test_id)
+        test = self.get('_id', test_id)
         if test is None: return None
         return random.choice(test.variants)
 
@@ -221,7 +245,7 @@ class TestsTable():
             test_id: uuid.UUID,
             variant_prop: str,
             value: Any) -> TestVariant | None:
-        test = self.get('id', test_id)
+        test = self.get('_id', test_id)
         if test is None: return None
 
         return get_from_list(test.variants, variant_prop, value)
