@@ -62,21 +62,34 @@ class Bot:
         #handle block
         previousMessageId = self.__dialogs[tg_user.id]['answer'].text.id
 
+        # Введите группы этого семестра списком (элементы разделяйте переносом строки)
+        # Для пропуска этого шага отправьте '-'
         if (previousMessageId == TutorSettingsBranch.ENTER_GROUPS.value.id):
-            for name in update.message.text.split('\n'):
-                self.__db.groups.create(RawGroup(name))
+            if update.message.text != '-':
+                for name in update.message.text.split('\n'):
+                    self.__db.groups.create(RawGroup(name))
+        # Загрузите файлы с летучками по этому шаблону. Будьте внимательны, название файла будет названием летучки.
+        # или
+        # Пришлите файл в формате .xlsx
         elif (previousMessageId in [TutorSettingsBranch.ENTER_TESTS.value.id, TutorSettingsBranch.FILE_FORMAT_ERROR.value.id]):
             if update.message.document:
                 self.__download_file(update, context, 'tests/')
                 self.__db.tests.create(RawTest('assets/runtime/tests/' + update.message.document.file_name))
                 return
+
+        # Привет!
+        # Из какой ты группы?
         elif (previousMessageId == StudentSettingsBranch.SELECT_GROUP.value.id):
             self.__rawStudents[tg_user.id] = RawStudent(tg_user.id, '', self.__get_group_id(update.message))
+        # Введи своё ФИО
         elif (previousMessageId == StudentSettingsBranch.ENTER_FIO.value.id):
             self.__rawStudents[tg_user.id].name = update.message.text
             self.__db.users.create_student(self.__rawStudents[tg_user.id])
+
+        # Выберите летучку
         elif (previousMessageId == TutorTestBranch.SELECT_TEST.value.id):
             self.__testId = self.__get_test_id(update.message.text)
+        # Выберете группу
         elif (previousMessageId == TutorTestBranch.SELECT_GROUP.value.id):
             student_ids = [student.id for student in self.__db.users.get_students(self.__get_group_id(update.message))]
             self.__writtenTest = self.__db.tests.start(self.__testId, student_ids)
@@ -87,14 +100,20 @@ class Bot:
                 self.__dialogs[student_id]['answer'] = next(self.__dialogs[student_id]['generator'])
                 for message in self.__dialogs[student_id]['answer'].text.messages:
                     context.bot.sendMessage(chat_id=student_id, text=message, reply_markup=self.__dialogs[student_id]['answer'].markup)
-        elif (previousMessageId == TEST_QUESTION_ID):
-            question_id = len(self.__db.tests.get_student(self.__writtenTest.id, 'id', tg_user.id).answers)
-            self.__db.tests.save_answer(tg_user.id, self.__writtenTest.id, question_id, update.message.text)
+        # Летучка началась
+        # 
+        # Можете остановить летучку кнопкой ниже
         elif (previousMessageId == TutorTestBranch.SUCCESS):
             if (update.message.text == TutorTestSuccessOptions.STOP.value):
                 self.__writtenTest == None
                 filename = self.__db.tests.finish(self.__writtenTest.id)
                 context.bot.sendMessage(chat_id=tg_user.id, text=filename)
+
+        # Любой вопрос теста
+        elif (previousMessageId == TEST_QUESTION_ID):
+            question_id = len(self.__db.tests.get_student(self.__writtenTest.id, 'id', tg_user.id).answers)
+            self.__db.tests.save_answer(tg_user.id, self.__writtenTest.id, question_id, update.message.text)
+        
 
             
 

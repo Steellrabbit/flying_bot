@@ -36,7 +36,7 @@ class TutorTestSuccessOptions(Enum):
 class TutorStartDialog(Enum):
     HELLO = DialogAnswerText("Здравствуйте \nЧто необходимо сделать?")
 class TutorSettingsBranch(Enum):
-    ENTER_GROUPS = DialogAnswerText("Введите группы этого семестра списком (элементы разделяйте переносом строки)")
+    ENTER_GROUPS = DialogAnswerText("Введите группы этого семестра списком (элементы разделяйте переносом строки)\nДля пропуска этого шага отправьте '-'")
     ENTER_TESTS = DialogAnswerText("Загрузите файлы с летучками по этому шаблону. Будьте внимательны, название файла будет названием летучки.")
     MORE_TESTS = DialogAnswerText("Вы можете загрузить ещё файлы, либо завершить настройку.")
     FILE_FORMAT_ERROR = DialogAnswerText("Пришлите файл в формате .xlsx")

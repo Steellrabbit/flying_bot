@@ -50,7 +50,7 @@ class ExcelService():
             question = RawTestQuestion(id, type, text, answer, max_mark)
             questions.append(question)
 
-        return question
+        return questions
 
     # endregion
 

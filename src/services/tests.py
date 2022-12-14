@@ -43,7 +43,7 @@ class TestsTable():
     def create(self, source: RawTest) -> Test:
         test = self.__excel.read_test(source)
 
-        doc = { 'filename': test.filename, 'name': test.name, 'variants': test.variants}
+        doc = self.__test_to_document(test)
         insert_result = self.__collection.insert_one(doc)
         found = self.__collection.find_one({ '_id': insert_result.inserted_id })
 
@@ -125,7 +125,8 @@ class TestsTable():
         summary_sheet = WrittenTestSummarySheet(group_data)
         return WrittenTestExcel(test.name, written_test.finish_time, variant_sheet, summary_sheet)
 
-    def __test_to_document(test: Test) -> dict:
+    def __test_to_document(self, test: Test) -> dict:
+        print(test)
         variant_docs = []
         for variant in test.variants:
             doc = { 'id': variant.id, 'name': variant.name }
@@ -140,7 +141,7 @@ class TestsTable():
 
         return { 'filename': test.filename, 'name': test.name, 'variants': variant_docs }
 
-    def __test_from_document(doc: dict) -> Test:
+    def __test_from_document(self, doc: dict) -> Test:
         variants = []
         for variant_doc in doc['variants']:
             questions = []
@@ -179,7 +180,7 @@ class TestsTable():
             student_test = StudentWrittenTest(id, finish_time, student_id, variant_id, answers)
             student_tests.append(student_test)
 
-        doc = { 'test_id': test_id, 'start_time': start_time, 'finish_time': finish_time, 'student_tests': student_tests }
+        doc = self.__written_to_document(WrittenTest(id, test_id, start_time, finish_time, student_tests))
         insert_result = self.__written_collection.insert_one(doc)
         found = self.__collection.find_one({ '_id': insert_result.inserted_id })
         return self.__written_from_document(found)
@@ -246,7 +247,7 @@ class TestsTable():
 
         self.__collection.update_one({ '_id': written_test.id }, written_test)
 
-    def __written_to_document(test: WrittenTest) -> dict:
+    def __written_to_document(self, test: WrittenTest) -> dict:
         student_docs = []
         for test in test.student_tests:
             doc = { 'id': test.id, 'finish_time': test.finish_time, 'student_id': test.student_id, 'variant_id': test.variant_id }
@@ -257,9 +258,9 @@ class TestsTable():
             doc['answers'] = answer_docs
             student_docs.append(doc)
 
-        return { 'test_id': test.test_id, 'start_time': test.start_time, 'finish_time': test.finish_time, 'student_tests': sutdent_docs }
+        return { 'test_id': test.test_id, 'start_time': test.start_time, 'finish_time': test.finish_time, 'student_tests': student_docs }
 
-    def __written_from_document(doc: dict) -> WrittenTest:
+    def __written_from_document(self, doc: dict) -> WrittenTest:
         students = []
         for student_doc in doc['student_tests']:
             answers = []
