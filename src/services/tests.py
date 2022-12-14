@@ -13,7 +13,7 @@ from .excels import ExcelService
 from .users import UsersTable
 from .groups import GroupsTable
 from ..models.user import Student
-from ..models.excel import WrittenTestExcel, WrittenTestVariantSheet,\
+from ..models.excel import WrittenTestExcel, WrittenTestGroup, WrittenTestStudentAnswer, WrittenTestStudentData, WrittenTestVariantSheet,\
         WrittenTestSummarySheet, WrittenTestQuestionData,\
         WrittenTestCalculable
 from ..models.group import Group
@@ -43,7 +43,7 @@ class TestsTable():
     def create(self, source: RawTest) -> Test:
         test = self.__excel.read_test(source)
 
-        doc = { 'filename': test.filename, 'name': test.name, 'variants': variants }
+        doc = { 'filename': test.filename, 'name': test.name, 'variants': test.variants}
         insert_result = self.__collection.insert_one(doc)
         found = self.__collection.find_one({ '_id': insert_result.inserted_id })
 
@@ -54,14 +54,14 @@ class TestsTable():
         if found is None: return
         return self.__test_from_document(found)
 
-    def get_many(self) -> list[Test]:
+    def get_all(self) -> list[Test]:
         found = self.__collection.find()
         return list(map(lambda doc: self.__test_from_document(doc), found))
 
     def __convert_to_excel(self, written_test: WrittenTest) -> WrittenTestExcel:
         test: Test = self.get('_id', written_test.test_id)
 
-        groups: dict[list[WrittentTestStudentData]] = dict()
+        groups: dict[list[WrittenTestStudentData]] = dict()
 
         variant_sheets: list[WrittenTestVariantSheet] = []
         for variant in test.variants:

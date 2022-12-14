@@ -5,7 +5,7 @@ import pandas as pd
 import xlsxwriter as xls
 
 from ..models.excel import WrittenTestExcel
-from ..models.test import RawTest, Test, TestQuestion, TestVariant
+from ..models.test import RawTest, RawTestQuestion, Test, TestQuestion, TestVariant
 
 
 class ExcelService():
@@ -23,7 +23,7 @@ class ExcelService():
 
         return Test(filename, id, name, variants)
 
-    def __read_variants(self, excel: pd.DataFrame) -> list[TestVariant]:
+    def __read_variants(self, frame: pd.DataFrame) -> list[TestVariant]:
         variants: list[TestVariant] = []
 
         for sheet_name in frame.keys():
@@ -64,7 +64,7 @@ class ExcelService():
         book = xls.Workbook(filename)
 
         for variant in test.variants:
-            sheet = file.add_worksheet(variant.name)
+            sheet = book.add_worksheet(variant.name)
             sheet.write(0, 1, 'вопрос')
             sheet.write(1, 1, 'ответ')
 
@@ -89,10 +89,10 @@ class ExcelService():
                     sheet.write(2 + student_row_offset, 1 + answer_column_offset, answer.text)
                     sheet.write(2 + student_row_offset, 1 + answer_column_offset + 1, answer.mark.value)
                     answer_column_offset += 2
-                sheet_write(2 + student_row_offset, 1 + answer_column_offset, sum(map(lambda a: a.mark.value, student.answers)))
+                sheet.write(2 + student_row_offset, 1 + answer_column_offset, sum(map(lambda a: a.mark.value, student.answers)))
                 student_row_offset += 1
 
-        sheet = file.add_worksheet('группы')
+        sheet = book.add_worksheet('группы')
         row_offset = 0
         for group in test.summary.groups:
             sheet.write(0 + row_offset, 0, group.group)

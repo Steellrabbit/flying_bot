@@ -6,7 +6,7 @@ from ..models.user import RawStudent
 from ..models.group import RawGroup
 
 from .db import DataBase
-from .dialogs import StudentSettingsBranch, TutorSettingsBranch, TutorTestBranch, student_settings_branch, student_test_branch, tutorStartDialog
+from .dialogs import TEST_QUESTION_ID, StudentSettingsBranch, TutorSettingsBranch, TutorTestBranch, TutorTestSuccessOptions, student_exists_branch, student_settings_branch, student_test_branch, tutorStartDialog
 
 class Bot:
 
@@ -37,9 +37,11 @@ class Bot:
 
 
         if (self.__db.users.get_user(tg_user.id) != None and self.__db.users.get_user(tg_user.id).is_tutor):
-            self.__dialogs[tg_user.id]['generator'] = tutorStartDialog(self.__db.tests.get_tests(), self.__db.groups.get_groups())
+            self.__dialogs[tg_user.id]['generator'] = tutorStartDialog(self.__db.tests.get_all(), self.__db.groups.get_all())
+        elif (self.__db.users.get_user(tg_user.id) == None):
+            self.__dialogs[tg_user.id]['generator'] = student_settings_branch(self.__db.groups.get_all())
         else:
-            self.__dialogs[tg_user.id]['generator'] = student_settings_branch(self.__db.groups.get_groups())
+            self.__dialogs[tg_user.id]['generator'] = student_exists_branch()
         
         self.__dialogs[tg_user.id]['answer'] = next(self.__dialogs[tg_user.id]['generator'])
         for message in self.__dialogs[tg_user.id]['answer'].text.messages:
@@ -62,12 +64,11 @@ class Bot:
 
         if (previousMessageId == TutorSettingsBranch.ENTER_GROUPS.value.id):
             for name in update.message.text.split('\n'):
-                self.__db.groups.create_group(RawGroup(name))
+                self.__db.groups.create(RawGroup(name))
         elif (previousMessageId in [TutorSettingsBranch.ENTER_TESTS.value.id, TutorSettingsBranch.FILE_FORMAT_ERROR.value.id]):
-            print("\nЭто документ?", update.message.document)
             if update.message.document:
                 self.__download_file(update, context, 'tests/')
-                self.__db.tests.create_test(RawTest('assets/runtime/tests/' + update.message.document.file_name))
+                self.__db.tests.create(RawTest('assets/runtime/tests/' + update.message.document.file_name))
                 return
         elif (previousMessageId == StudentSettingsBranch.SELECT_GROUP.value.id):
             self.__rawStudents[tg_user.id] = RawStudent(tg_user.id, '', self.__get_group_id(update.message))
@@ -76,15 +77,25 @@ class Bot:
             self.__db.users.create_student(self.__rawStudents[tg_user.id])
         elif (previousMessageId == TutorTestBranch.SELECT_TEST.value.id):
             self.__testId = self.__get_test_id(update.message.text)
-            print('TESTID', self.__testId)
         elif (previousMessageId == TutorTestBranch.SELECT_GROUP.value.id):
             student_ids = [student.id for student in self.__db.users.get_students(self.__get_group_id(update.message))]
-            self.__writtenTest = self.__db.tests.start_test(self.__testId, student_ids)
+            self.__writtenTest = self.__db.tests.start(self.__testId, student_ids)
             for student_id in student_ids:
-                self.__dialogs[student_id]['generator'] = student_test_branch(self.__db.tests.get_variant(self.__testId, self.__db.tests.get_student_test(self.__writtenTest.id, student_id).variant_id).questions)
+                test_name = self.__db.tests.get('_id', self.__testId).name
+                variant_questions = self.__db.tests.get_variant(self.__testId, 'id', self.__db.tests.get_student(self.__writtenTest.id, 'id', student_id).variant_id).questions
+                self.__dialogs[student_id]['generator'] = student_test_branch(test_name, variant_questions)
                 self.__dialogs[student_id]['answer'] = next(self.__dialogs[student_id]['generator'])
                 for message in self.__dialogs[student_id]['answer'].text.messages:
                     context.bot.sendMessage(chat_id=student_id, text=message, reply_markup=self.__dialogs[student_id]['answer'].markup)
+        elif (previousMessageId == TEST_QUESTION_ID):
+            question_id = len(self.__db.tests.get_student(self.__writtenTest.id, 'id', tg_user.id).answers)
+            self.__db.tests.save_answer(tg_user.id, self.__writtenTest.id, question_id, update.message.text)
+        elif (previousMessageId == TutorTestBranch.SUCCESS):
+            if (update.message.text == TutorTestSuccessOptions.STOP.value):
+                self.__writtenTest == None
+                filename = self.__db.tests.finish(self.__writtenTest.id)
+                context.bot.sendMessage(chat_id=tg_user.id, text=filename)
+
             
 
 
@@ -112,10 +123,10 @@ class Bot:
             context.bot.get_file(update.message.document).download(out=f)
 
     def __get_group_id(self, name):
-        return [group.id for group in self.__db.groups.get_groups() if group.name == name]
+        return [group.id for group in self.__db.groups.get_all() if group.name == name]
 
     def __get_test_id(self, name):
-        return [test.id for test in self.__db.tests.get_tests() if test.name == name][0]
+        return [test.id for test in self.__db.tests.get_all() if test.name == name][0]
     #endregion
 
     #region State

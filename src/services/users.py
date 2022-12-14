@@ -26,7 +26,7 @@ class UsersTable():
         found = self.__collection.find_one({ '_id': insert_result.inserted_id })
         return self.__user_from_document(found)
 
-    def __user_from_document(doc: dict) -> User:
+    def __user_from_document(self, doc: dict) -> User:
         return User(doc['telegram_id'], doc['is_tutor'])
 
     # endregion
@@ -41,10 +41,10 @@ class UsersTable():
         return self.__student_from_document(found)
 
     def get_students(self, group_id: uuid.UUID) -> list[Student]:
-        found = self.__collection.find({ 'is_tutor': False })
+        found = self.__collection.find({ 'is_tutor': False, 'group_id': group_id })
         return list(map(lambda doc: self.__student_from_document(doc), found))
 
-    def __student_from_document(doc: dict) -> Student:
+    def __student_from_document(self, doc: dict) -> Student:
         return Student(doc['telegram_id'], doc['is_tutor'], doc['name'], doc['group_id'])
 
     # endregion
