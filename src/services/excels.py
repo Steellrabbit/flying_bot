@@ -60,7 +60,7 @@ class ExcelService():
     def write_written_test(self,
             test: WrittenTestExcel) -> str:
         """Writes test results into excel and returns excel filename"""
-        filename = f'${test.name}_{str(test.date)}.xlsx'
+        filename = f'assets/runtime/results/{test.name}_{str(test.date)}.xlsx'
         book = xls.Workbook(filename)
 
         for variant in test.variants:
@@ -87,9 +87,10 @@ class ExcelService():
                 answer_column_offset = 1
                 for answer in student.answers:
                     sheet.write(2 + student_row_offset, 1 + answer_column_offset, answer.text)
-                    sheet.write(2 + student_row_offset, 1 + answer_column_offset + 1, answer.mark.value)
+                    sheet.write(2 + student_row_offset, 1 + answer_column_offset + 1, answer.mark.value or 0)
                     answer_column_offset += 2
-                sheet.write(2 + student_row_offset, 1 + answer_column_offset, sum(map(lambda a: a.mark.value, student.answers)))
+                # FIXME если ответов меньше максимума - сумма вписывается в неправильную ячейку
+                sheet.write(2 + student_row_offset, 1 + answer_column_offset, sum(map(lambda a: a.mark.value or 0, student.answers)))
                 student_row_offset += 1
 
         sheet = book.add_worksheet('группы')
@@ -103,7 +104,7 @@ class ExcelService():
             for student in group.students:
                 sheet.write(0 + row_offset, 0, student_number)
                 sheet.write(0 + row_offset, 1, student.name)
-                sheet.write(0 + row_offset, 2, sum(map(lambda a: a.mark.value, student.answers)))
+                sheet.write(0 + row_offset, 2, sum(map(lambda a: a.mark.value or 0, student.answers)))
                 student_number += 1
                 row_offset += 1
             row_offset += 1

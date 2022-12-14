@@ -14,9 +14,10 @@ def main() -> None:
     db_url = 'mongodb://localhost:27017'
     # date_format = dotenv.dotenv_values()['date_format']
 
-    shutil.rmtree('assets/runtime')
-    os.mkdir('assets/runtime')
-    os.mkdir('assets/runtime/tests')
+    # shutil.rmtree('assets/runtime')
+    # os.mkdir('assets/runtime')
+    # os.mkdir('assets/runtime/tests')
+    # os.mkdir('assets/runtime/results')
     bot = Bot(token, db_url) #, date_format)
     bot.idle()
     # tests = TestsTable()

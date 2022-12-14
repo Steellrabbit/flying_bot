@@ -88,7 +88,7 @@ def tutor_test_branch(tests: List[Test], groups: List[Group]):
     yield DialogAnswer(TutorTestBranch.SELECT_GROUP.value, create_keyboard([[group.name for group in groups]]))
     answer = yield DialogAnswer(TutorTestBranch.SUCCESS.value, create_keyboard([[option.value for option in TutorTestSuccessOptions]]))
     if (answer.text == TutorTestSuccessOptions.STOP.value):
-        yield DialogAnswer(DialogAnswerText(TutorTestBranch.FINISH.value))
+        yield DialogAnswer(TutorTestBranch.FINISH.value)
 
 def student_settings_branch(groups: List[Group]):
     yield DialogAnswer(StudentSettingsBranch.SELECT_GROUP.value, create_keyboard([[group.name for group in groups]]))
@@ -103,4 +103,7 @@ def student_test_branch(test_name: str, questions: List[TestQuestion]):
     yield DialogAnswer(DialogAnswerText(["ВНИМАНИЕ! Начинаем летучку %s" % test_name, "Вопрос %i: %s" % (1, questions[0].text)], TEST_QUESTION_ID))
     for index, question in enumerate(questions[1:]):
         yield DialogAnswer(DialogAnswerText("Вопрос %i: %s" % (index+2, question.text), TEST_QUESTION_ID))
+    yield DialogAnswer(StudentTestBranch.FINISH.value)
+
+def student_abort_test():
     yield DialogAnswer(StudentTestBranch.FINISH.value)

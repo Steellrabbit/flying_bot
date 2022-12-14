@@ -6,7 +6,7 @@ from ..models.user import RawStudent
 from ..models.group import RawGroup
 
 from .db import DataBase
-from .dialogs import TEST_QUESTION_ID, StudentSettingsBranch, TutorSettingsBranch, TutorTestBranch, TutorTestSuccessOptions, student_exists_branch, student_settings_branch, student_test_branch, tutorStartDialog
+from .dialogs import TEST_QUESTION_ID, StudentSettingsBranch, TutorSettingsBranch, TutorTestBranch, TutorTestSuccessOptions, student_abort_test, student_exists_branch, student_settings_branch, student_test_branch, tutorStartDialog
 
 class Bot:
 
@@ -80,7 +80,7 @@ class Bot:
         # Привет!
         # Из какой ты группы?
         elif (previousMessageId == StudentSettingsBranch.SELECT_GROUP.value.id):
-            self.__rawStudents[tg_user.id] = RawStudent(tg_user.id, '', self.__get_group_id(update.message))
+            self.__rawStudents[tg_user.id] = RawStudent(tg_user.id, '', self.__db.groups.get('name', update.message.text).id)
         # Введи своё ФИО
         elif (previousMessageId == StudentSettingsBranch.ENTER_FIO.value.id):
             self.__rawStudents[tg_user.id].name = update.message.text
@@ -88,14 +88,15 @@ class Bot:
 
         # Выберите летучку
         elif (previousMessageId == TutorTestBranch.SELECT_TEST.value.id):
-            self.__testId = self.__get_test_id(update.message.text)
+            self.__testId = self.__db.tests.get('name', update.message.text).id
         # Выберете группу
         elif (previousMessageId == TutorTestBranch.SELECT_GROUP.value.id):
-            student_ids = [student.id for student in self.__db.users.get_students(self.__get_group_id(update.message))]
+            student_ids = [student.id for student in self.__db.users.get_students(self.__db.groups.get('name', update.message.text).id)]
             self.__writtenTest = self.__db.tests.start(self.__testId, student_ids)
             for student_id in student_ids:
                 test_name = self.__db.tests.get('_id', self.__testId).name
-                variant_questions = self.__db.tests.get_variant(self.__testId, 'id', self.__db.tests.get_student(self.__writtenTest.id, 'id', student_id).variant_id).questions
+                variant_questions = self.__db.tests.get_variant(self.__testId, 'id', self.__db.tests.get_student(self.__writtenTest.id, 'student_id', student_id).variant_id).questions
+                # FIXME: если студент в текущем запуске бота не общался с ним, вылетает KeyError
                 self.__dialogs[student_id]['generator'] = student_test_branch(test_name, variant_questions)
                 self.__dialogs[student_id]['answer'] = next(self.__dialogs[student_id]['generator'])
                 for message in self.__dialogs[student_id]['answer'].text.messages:
@@ -103,15 +104,25 @@ class Bot:
         # Летучка началась
         # 
         # Можете остановить летучку кнопкой ниже
-        elif (previousMessageId == TutorTestBranch.SUCCESS):
+        elif (previousMessageId == TutorTestBranch.SUCCESS.value.id):
             if (update.message.text == TutorTestSuccessOptions.STOP.value):
-                self.__writtenTest == None
                 filename = self.__db.tests.finish(self.__writtenTest.id)
+                print(filename)
                 context.bot.sendMessage(chat_id=tg_user.id, text=filename)
+                student_ids = [test.student_id for test in self.__writtenTest.student_tests]
+                for student_id in student_ids:
+                    self.__dialogs[student_id]['generator'] = student_abort_test()
+                    self.__dialogs[student_id]['answer'] = next(self.__dialogs[student_id]['generator'])
+                    for message in self.__dialogs[student_id]['answer'].text.messages:
+                        context.bot.sendMessage(chat_id=student_id, text=message, reply_markup=self.__dialogs[student_id]['answer'].markup)
+                self.__writtenTest == None
+
 
         # Любой вопрос теста
         elif (previousMessageId == TEST_QUESTION_ID):
-            question_id = len(self.__db.tests.get_student(self.__writtenTest.id, 'id', tg_user.id).answers)
+            # FIXME: если прервать тест, студенту продолжают задаваться вопросы
+            student_test = self.__db.tests.get_student(self.__writtenTest.id, 'student_id', tg_user.id)
+            question_id = self.__db.tests.get_question(self.__testId, student_test.variant_id, len(student_test.answers)).id
             self.__db.tests.save_answer(tg_user.id, self.__writtenTest.id, question_id, update.message.text)
         
 
@@ -141,11 +152,11 @@ class Bot:
         with open('assets/runtime/' + subpath + name, 'wb') as f:
             context.bot.get_file(update.message.document).download(out=f)
 
-    def __get_group_id(self, name):
-        return [group.id for group in self.__db.groups.get_all() if group.name == name]
+    # def __get_group_id(self, name):
+    #     return [group.id for group in self.__db.groups.get_all() if group.name == name][0]
 
-    def __get_test_id(self, name):
-        return [test.id for test in self.__db.tests.get_all() if test.name == name][0]
+    # def __get_test_id(self, name):
+    #     return [test.id for test in self.__db.tests.get_all() if test.name == name][0]
     #endregion
 
     #region State
