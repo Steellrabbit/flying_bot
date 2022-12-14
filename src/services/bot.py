@@ -10,11 +10,11 @@ from .dialogs import StudentSettingsBranch, TutorSettingsBranch, TutorTestBranch
 
 class Bot:
 
-    def __init__(self, token: str) -> None:
+    def __init__(self, token: str, db_url: str) -> None:
 
         self.__updater = tg_ext.Updater(token=token)
         self.__dispatcher = self.__updater.dispatcher
-        self.__db = DataBase()
+        self.__db = DataBase(db_url)
         self.__dialogs = dict()
         self.__rawStudents = dict()
 
