@@ -126,14 +126,13 @@ class TestsTable():
         return WrittenTestExcel(test.name, written_test.finish_time, variant_sheet, summary_sheet)
 
     def __test_to_document(self, test: Test) -> dict:
-        print(test)
         variant_docs = []
         for variant in test.variants:
-            doc = { 'id': variant.id, 'name': variant.name }
+            doc = { 'id': str(variant.id), 'name': variant.name }
             question_docs = []
 
             for question in variant.questions:
-                doc = { 'id': question.id, 'type': question.type, 'text': question.text, 'answer': question.answer, 'max_mark': question.max_mark }
+                doc = { 'id': str(question.id), 'type': question.type, 'text': question.text, 'answer': question.answer, 'max_mark': question.max_mark }
                 question_docs.append(doc)
 
             doc['questions'] = question_docs
@@ -147,10 +146,10 @@ class TestsTable():
             questions = []
 
             for question_doc in variant['questions']:
-                question = RawTestQuestion(question_doc['id'], question_doc['type'], question_doc['text'], question_doc['answer'], question_doc['max_mark'])
+                question = RawTestQuestion(uuid.UUID(question_doc['id']), question_doc['type'], question_doc['text'], question_doc['answer'], question_doc['max_mark'])
                 questions.append(question)
 
-            variant = TestVariant(variant_doc['id'], variant_doc['name'], questions)
+            variant = TestVariant(uuid.UUID(variant_doc['id']), variant_doc['name'], questions)
             variants.append(variant)
 
         return Test(doc['filename'], doc['_id'], doc['name'], variants)
@@ -250,10 +249,10 @@ class TestsTable():
     def __written_to_document(self, test: WrittenTest) -> dict:
         student_docs = []
         for test in test.student_tests:
-            doc = { 'id': test.id, 'finish_time': test.finish_time, 'student_id': test.student_id, 'variant_id': test.variant_id }
+            doc = { 'id': str(test.id), 'finish_time': test.finish_time, 'student_id': test.student_id, 'variant_id': str(test.variant_id) }
             answer_docs = []
             for answer in test.answers:
-                doc = { 'id': answer.id, 'question_id': answer.question_id, 'text': answer.text, 'mark': answer.mark }
+                doc = { 'id': str(answer.id), 'question_id': str(answer.question_id), 'text': answer.text, 'mark': answer.mark }
                 answer_docs.append(doc)
             doc['answers'] = answer_docs
             student_docs.append(doc)
@@ -266,10 +265,10 @@ class TestsTable():
             answers = []
 
             for answer_doc in student_doc['answers']:
-                answer = TestAnswer(answer_doc['id'], answer_doc['question_id'], answer_doc['text'], answer_doc['mark'])
+                answer = TestAnswer(uuid.UUID(answer_doc['id']), uuid.UUID(answer_doc['question_id']), answer_doc['text'], answer_doc['mark'])
                 answers.append(answer)
 
-            student = StudentWrittenTest(student_doc['id'], student_doc['finish_time'], student_doc['student_id'], student_doc['variant_id'], answers)
+            student = StudentWrittenTest(uuid.UUID(student_doc['id']), student_doc['finish_time'], student_doc['student_id'], uuid.UUID(student_doc['variant_id']), answers)
             students.append(student)
 
         return WrittenTest(doc['_id'], doc['test_id'], doc['start_time'], doc['finish_time'], students)
