@@ -33,8 +33,6 @@ class TestsTable():
         self.__collection = db[TEST_COLLECTION]
         self.__written_collection = db[WRITTEN_TEST_COLLECTION]
 
-        self.entities: list[Test] = []
-        self.written: list[WrittenTest] = []
         self.__students = UsersTable(db)
         self.__groups = GroupsTable(db)
         self.__excel = ExcelService()
@@ -176,6 +174,8 @@ class TestsTable():
             if student_test.finish_time is None:
                 student_test.finish_time = finish_time
 
+        self.__collection.update_one({ '_id': test.id }, test)
+
         excel = self.__convert_to_excel(test)
         return self.__excel.write_written_test(excel)
 
@@ -188,6 +188,9 @@ class TestsTable():
 
         finish_time = datetime.today()
         student_test.finish_time = finish_time
+
+        test = self.get_written('_id', written_test_id)
+        self.__collection.update_one({ '_id': test.id }, test)
 
     def get_student(self,
             written_test_id: uuid.UUID,
@@ -215,7 +218,12 @@ class TestsTable():
             raise Exception('Written test was not found')
         student_test.answers.append(answer)
 
-    def __written_from_document(doc: dict) -> Test:
+        self.__collection.update_one({ '_id': written_test.id }, written_test)
+
+    def __written_to_document(test: WrittenTest) -> dict:
+        return { 'test_id': test.test_id, 'start_time': test.start_time, 'finish_time': test.finish_time, 'student_tests': test.student_tests }
+
+    def __written_from_document(doc: dict) -> WrittenTest:
         return WrittenTest(doc['_id'], doc['test_id'], doc['start_time'], doc['finish_time'], doc['student_tests'])
 
     # endregion
