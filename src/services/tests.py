@@ -94,7 +94,6 @@ class TestsTable():
 
                 answer_data: list[WrittenTestStudentAnswer] = []
                 mark_column_offset = 3
-                print('--------------------------------', student_test.answers)
                 for answer in student_test.answers:
                     answer_text = answer.text
 
@@ -198,7 +197,6 @@ class TestsTable():
         finish_time = datetime.today()
         test.finish_time = finish_time
         for student_test in test.student_tests:
-            print('##########################################', student_test)
             if student_test.finish_time is None:
                 student_test.finish_time = finish_time
 
@@ -241,7 +239,6 @@ class TestsTable():
         question = self.get_question(written_test.test_id, student_test.variant_id, None, question_id)
 
         mark = self.__check_answer(question, text)
-        print('++++++++++++++++++++++++++++++++++++++++++++++++++++', mark)
         id = uuid.uuid4()
         answer = TestAnswer(id, question_id, text, mark)
 
@@ -286,7 +283,6 @@ class TestsTable():
             question: TestQuestion,
             text: str) -> float | None:
         """Checks test question answer and returns mark if possible"""
-        print('????????????????????????????????????????', question.type, TestAnswerType.LECTURE.value, question.type == TestAnswerType.LECTURE.value)
         if question.type == TestAnswerType.LECTURE.value:
            return Levenshtein.ratio(question.answer, text) * question.max_mark
         return None

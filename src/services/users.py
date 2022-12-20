@@ -62,7 +62,7 @@ class UsersTable():
         if found is None: return
         return self.__user_from_document(found)
 
-    def get_users(self, group_id: uuid.UUID) -> list[Student]:
+    def get_users(self) -> list[User]:
         found = self.__collection.find()
         return list(map(lambda doc: self.__user_from_document(doc), found))
 

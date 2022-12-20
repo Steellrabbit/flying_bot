@@ -120,7 +120,6 @@ class Bot:
 
         # Любой вопрос теста
         elif (previousMessageId == TEST_QUESTION_ID):
-            # FIXME: если прервать тест, студенту продолжают задаваться вопросы
             student_test = self.__db.tests.get_student(self.__writtenTest.id, 'student_id', tg_user.id)
             question_id = self.__db.tests.get_question(self.__testId, student_test.variant_id, len(student_test.answers)).id
             self.__db.tests.save_answer(tg_user.id, self.__writtenTest.id, question_id, update.message.text)
