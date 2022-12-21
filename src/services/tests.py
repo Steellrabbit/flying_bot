@@ -115,7 +115,7 @@ class TestsTable():
     def __test_to_document(self, test: Test) -> dict:
         variant_docs = []
         for variant in test.variants:
-            doc = { 'id': str(variant.id), 'name': variant.name }
+            doc = { 'id': str(variant.id), 'name': variant.name, 'sum_max_mark': variant.sum_max_mark }
             question_docs = []
 
             for question in variant.questions:
@@ -130,7 +130,7 @@ class TestsTable():
             doc['questions'] = question_docs
             variant_docs.append(doc)
 
-        return { 'filename': test.filename, 'name': test.name, 'variants': variant_docs }
+        return { 'filename': test.filename, 'name': test.name, 'variants': variant_docs}
 
     def __test_from_document(self, doc: dict) -> Test:
         variants = []
@@ -146,7 +146,7 @@ class TestsTable():
                         question_doc['max_mark'])
                 questions.append(question)
 
-            variant = TestVariant(uuid.UUID(variant_doc['id']), variant_doc['name'], questions)
+            variant = TestVariant(uuid.UUID(variant_doc['id']), variant_doc['name'], questions, variant_doc['sum_max_mark'])
             variants.append(variant)
 
         return Test(doc['filename'], doc['_id'], doc['name'], variants)
@@ -173,7 +173,7 @@ class TestsTable():
             finish_time = None
             variant_id = self.get_random_variant(test_id).id
             answers = []
-            student_test = StudentWrittenTest(id, finish_time, student_id, variant_id, answers)
+            student_test = StudentWrittenTest(id, finish_time, student_id, variant_id, answers, None)
             student_tests.append(student_test)
 
         doc = self.__written_to_document(WrittenTest(id, test_id, start_time, finish_time, student_tests))
@@ -269,7 +269,7 @@ class TestsTable():
                 answer = TestAnswer(uuid.UUID(answer_doc['id']), uuid.UUID(answer_doc['question_id']), answer_doc['text'], answer_doc['mark'])
                 answers.append(answer)
 
-            student = StudentWrittenTest(uuid.UUID(student_doc['id']), student_doc['finish_time'], student_doc['student_id'], uuid.UUID(student_doc['variant_id']), answers)
+            student = StudentWrittenTest(uuid.UUID(student_doc['id']), student_doc['finish_time'], student_doc['student_id'], uuid.UUID(student_doc['variant_id']), answers, None)
             students.append(student)
 
         return WrittenTest(doc['_id'],\
@@ -319,7 +319,7 @@ class TestsTable():
                 question = self.get_question(written_test.test_id, student_test.variant_id)
                 student_test.answers[i].mark = student.marks[i] / question.max_mark
 
-        self.__written_collection.update_one({ '_id': written_test.id }, {'$set': self.__written_to_document(test)})
+        self.__written_collection.update_one({ '_id': written_test.id }, {'$set': self.__written_to_document(written_test)})
 
         return written_test
 

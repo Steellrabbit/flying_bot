@@ -1,6 +1,7 @@
 # import dotenv
 
 import os
+import pathlib
 import shutil
 from src.services.bot import Bot
 from src.services.tests import TestsTable
@@ -14,10 +15,10 @@ def main() -> None:
     db_url = 'mongodb://localhost:27017'
     # date_format = dotenv.dotenv_values()['date_format']
 
-    # shutil.rmtree('assets/runtime')
-    # os.mkdir('assets/runtime')
-    # os.mkdir('assets/runtime/tests')
-    # os.mkdir('assets/runtime/results')
+    shutil.rmtree('assets/runtime')
+    pathlib.Path('assets/runtime/tests').mkdir(parents=True, exist_ok=True)
+    pathlib.Path('assets/runtime/results').mkdir(parents=True, exist_ok=True)
+    
     bot = Bot(token, db_url) #, date_format)
     bot.idle()
     # tests = TestsTable()

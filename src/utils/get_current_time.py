@@ -1,4 +1,4 @@
 from datetime import datetime
 
 def get_current_time() -> str:
-    return srt(datetime.now())
+    return str(datetime.now())

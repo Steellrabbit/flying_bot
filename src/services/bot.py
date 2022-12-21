@@ -107,8 +107,8 @@ class Bot:
         elif (previousMessageId == TutorTestBranch.SUCCESS.value.id):
             if (update.message.text == TutorTestSuccessOptions.STOP.value):
                 filename = self.__db.tests.finish(self.__writtenTest.id)
-                print(filename)
-                context.bot.sendMessage(chat_id=tg_user.id, text=filename)
+                with open(filename, 'rb') as f:
+                    context.bot.sendDocument(chat_id=tg_user.id, document=f)
                 student_ids = [test.student_id for test in self.__writtenTest.student_tests]
                 for student_id in student_ids:
                     self.__dialogs[student_id]['generator'] = student_abort_test()

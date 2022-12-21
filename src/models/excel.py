@@ -41,6 +41,10 @@ class WrittenTestExcel:
     variants: list[WrittenTestVariantSheet]
     summary: WrittenTestSummarySheet
 
+@dataclass
+class UpdatedStudentData:
+    name: str
+    marks: list[float]
 
 @dataclass
 class UpdatedTestExcel:
@@ -48,7 +52,3 @@ class UpdatedTestExcel:
     date: str
     students: list[UpdatedStudentData]
 
-@dataclass
-class UpdatedStudentData:
-    name: str
-    marks: list[float]

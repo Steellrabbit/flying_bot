@@ -123,7 +123,7 @@ class ExcelService():
             row_offset += 1
             student_number = 1
             for student in group.students:
-                mark_cell = sum_mark_cells[str(student.id)]
+                mark_cell = student_mark_cells[str(student.id)]
                 sheet.write(0 + row_offset, 0, student_number)
                 sheet.write(0 + row_offset, 1, student.name)
                 sheet.write_formula(0 + row_offset, 2, f"'{mark_cell['sheet']}'!{mark_cell['mark_cell']}")
@@ -177,10 +177,10 @@ class ExcelService():
             col_offset = 1
             mark_cells = []
             for i in len(range(question_count)):
-                answer = student.answers[index].text if i < len(student.answers) else ''
+                answer = student.answers[i].text if i < len(student.answers) else ''
                 sheet.write(2 + row_offset, 1 + col_offset, answer)
 
-                mark = student.answers[index].mark if i < len(student.answers) else 0
+                mark = student.answers[i].mark if i < len(student.answers) else 0
                 mark_cell = xls.utility.xl_rowcol_to_cell(2 + row_offset, 1 + col_offset)
                 max_mark_cell = xls.utility.xl_rowcol_to_cell(1, 1 + col_offset)
                 mark_cells.append(mark_cell)
