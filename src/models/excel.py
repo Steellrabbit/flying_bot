@@ -3,25 +3,21 @@ from dataclasses import dataclass
 
 
 @dataclass
-class WrittenTestCalculable:
-    value: float | str
-    cell: str 
-
-@dataclass
 class WrittenTestStudentAnswer:
     text: str
-    mark: WrittenTestCalculable
+    mark: float
 
 @dataclass
 class WrittenTestQuestionData:
     question: str
     answer: str
-    max_mark: WrittenTestCalculable
+    max_mark: float
 
 @dataclass
 class WrittenTestStudentData:
     name: str
     group: str
+    id: int
     answers: list[WrittenTestStudentAnswer]
 
 @dataclass

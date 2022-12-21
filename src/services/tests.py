@@ -14,8 +14,7 @@ from .users import UsersTable
 from .groups import GroupsTable
 from ..models.user import Student
 from ..models.excel import WrittenTestExcel, WrittenTestGroup, WrittenTestStudentAnswer, WrittenTestStudentData, WrittenTestVariantSheet,\
-        WrittenTestSummarySheet, WrittenTestQuestionData,\
-        WrittenTestCalculable
+        WrittenTestSummarySheet, WrittenTestQuestionData
 from ..models.group import Group
 from ..models.test import RawTest, Test, TestQuestion,\
         RawTestQuestion, TestVariant, StudentWrittenTest,\
@@ -68,15 +67,10 @@ class TestsTable():
             sheet_name = variant.name
 
             question_data: list[WrittenTestQuestionData] = []
-            max_mark_offset = 3
             for question in variant.questions:
                 question_text = question.text
                 answer = question.answer or ''
-
-                max_mark_value = question.max_mark
-                max_mark_cell = f'=OFFSET(A2, 0, {max_mark_offset})'
-                max_mark_offset += 2
-                max_mark = WrittenTestCalculable(max_mark_value, max_mark_cell)
+                max_mark = question.max_mark
 
                 question_data_element = WrittenTestQuestionData(question_text, answer, max_mark)
                 question_data.append(question_data_element)
@@ -85,28 +79,21 @@ class TestsTable():
             student_tests = filter(
                     lambda t: t.variant_id == variant.id,
                     written_test.student_tests)
-            mark_row_offset = 3
             for student_test in student_tests:
                 student = self.__students.get_student(student_test.student_id)
-                student_name = student.name
                 group: Group = self.__groups.get('_id', student.group_id)
                 student_group = group.name
 
                 answer_data: list[WrittenTestStudentAnswer] = []
-                mark_column_offset = 3
                 for answer in student_test.answers:
                     answer_text = answer.text
-
-                    mark_value = answer.mark
-                    mark_cell = f'=OFFSET(A1, {mark_row_offset}, {mark_column_offset})'
-                    mark_column_offset += 2
-                    mark_row_offset += 1
-                    mark = WrittenTestCalculable(mark_value, mark_cell)
+                    mark = answer.mark
 
                     answer_data_element = WrittenTestStudentAnswer(answer_text, mark)
                     answer_data.append(answer_data_element)
 
-                student_data_element = WrittenTestStudentData(student_name, student_group, answer_data)
+                student_data_element = WrittenTestStudentData(\
+                        student.name, student_group, student.id, answer_data)
                 student_data.append(student_data_element)
 
                 group_data: list[WrittenTestStudentData] = groups.get(group.name, [])
