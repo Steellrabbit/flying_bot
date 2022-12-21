@@ -1,4 +1,6 @@
 from enum import Enum
+import math
+from sre_constants import SUCCESS
 from typing import List
 import uuid
 from telegram import ReplyKeyboardMarkup
@@ -48,6 +50,10 @@ class TutorTestBranch(Enum):
     SUCCESS = DialogAnswerText(["Летучка началась", "Можете остановить летучку кнопкой ниже"])
     FINISH = DialogAnswerText("Летучка завершена!")
 
+class TutorCheckBranch(Enum):
+    SEND_FILE = DialogAnswerText("Оцените результаты, выставьте баллы в соответствующую графу и пришлите изменённый файл в ответном сообщении")
+    SUCCESS = DialogAnswerText("Летучка оценена, результат направлен студентам")
+
 class StudentSettingsBranch(Enum):
     SELECT_GROUP = DialogAnswerText("Привет!\nИз какой ты группы?")
     ENTER_FIO = DialogAnswerText("Введи своё ФИО")
@@ -55,8 +61,10 @@ class StudentSettingsBranch(Enum):
 
 class StudentExistsBranch(Enum):
     NO_TEST = DialogAnswerText("Пока летучки нет - отдыхай, я тоже отдохну")
+
 class StudentTestBranch(Enum):
-    FINISH = DialogAnswerText("Летучка завершена.\nРезультат ты получишь, как только работу оценит преподаватель")
+    FINISH = DialogAnswerText("Ты ответил на все вопросы. Молодец!")
+    ABORT = DialogAnswerText("Летучка завершена.\nРезультат ты получишь, как только работу оценит преподаватель")
 
 def create_keyboard(buttons: list[list[str]]):
     return ReplyKeyboardMarkup(keyboard=buttons, resize_keyboard=True, one_time_keyboard=True)
@@ -74,7 +82,7 @@ def tutorStartDialog(tests: List[Test], groups: List[Group]):
     elif answer.text == TutorDialogOptions.TEST.value:
         yield from tutor_test_branch(tests, groups)
     else:
-        yield DialogAnswer(DialogAnswerText("Я пока так не умею, но скоро обязательно научусь ;)"))
+        yield from tutor_check_branch()
 
 def tutor_settings_branch():
     yield DialogAnswer(TutorSettingsBranch.ENTER_GROUPS.value)
@@ -89,6 +97,10 @@ def tutor_test_branch(tests: List[Test], groups: List[Group]):
     answer = yield DialogAnswer(TutorTestBranch.SUCCESS.value, create_keyboard([[option.value for option in TutorTestSuccessOptions]]))
     if (answer.text == TutorTestSuccessOptions.STOP.value):
         yield DialogAnswer(TutorTestBranch.FINISH.value)
+
+def tutor_check_branch():
+    yield DialogAnswer(TutorCheckBranch.SEND_FILE.value)
+    yield DialogAnswer(TutorCheckBranch.SUCCESS.value)
 
 def student_settings_branch(groups: List[Group]):
     yield DialogAnswer(StudentSettingsBranch.SELECT_GROUP.value, create_keyboard([[group.name for group in groups]]))
@@ -106,4 +118,7 @@ def student_test_branch(test_name: str, questions: List[TestQuestion]):
     yield DialogAnswer(StudentTestBranch.FINISH.value)
 
 def student_abort_test():
-    yield DialogAnswer(StudentTestBranch.FINISH.value)
+    yield DialogAnswer(StudentTestBranch.ABORT.value)
+
+def student_check_branch(test_name: str, mark: int, max_mark: int):
+    yield DialogAnswer(DialogAnswerText(["Привет!",f'Твоя летучка “{test_name}” оценена\n\nБаллы: {round(mark, 2)}/{max_mark}']))

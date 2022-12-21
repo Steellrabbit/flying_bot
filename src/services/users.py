@@ -1,3 +1,4 @@
+from typing import Any
 from pymongo import database
 
 import uuid
@@ -44,8 +45,8 @@ class UsersTable():
         found = self.__collection.find({ 'is_tutor': False, 'group_id': group_id })
         return list(map(lambda doc: self.__student_from_document(doc), found))
 
-    def get_student(self, user_id: int) -> Student | None:
-        found = self.__collection.find_one({'telegram_id': user_id})
+    def get_student(self, property: str, value: Any) -> Student | None:
+        found = self.__collection.find_one({property: value})
         if found is None: return
         return self.__student_from_document(found)
 

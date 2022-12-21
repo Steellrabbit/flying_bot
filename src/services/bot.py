@@ -1,3 +1,4 @@
+from imghdr import tests
 import telegram as tg
 import telegram.ext as tg_ext
 
@@ -6,7 +7,7 @@ from ..models.user import RawStudent
 from ..models.group import RawGroup
 
 from .db import DataBase
-from .dialogs import TEST_QUESTION_ID, StudentSettingsBranch, TutorSettingsBranch, TutorTestBranch, TutorTestSuccessOptions, student_abort_test, student_exists_branch, student_settings_branch, student_test_branch, tutorStartDialog
+from .dialogs import TEST_QUESTION_ID, StudentSettingsBranch, TutorCheckBranch, TutorSettingsBranch, TutorTestBranch, TutorTestSuccessOptions, student_abort_test, student_check_branch, student_exists_branch, student_settings_branch, student_test_branch, tutorStartDialog
 
 class Bot:
 
@@ -15,7 +16,7 @@ class Bot:
         self.__updater = tg_ext.Updater(token=token)
         self.__dispatcher = self.__updater.dispatcher
         self.__db = DataBase(db_url)
-        self.__dialogs = dict()
+        self.__dialogs = dict([(user.id, dict()) for user in self.__db.users.get_users()])
         self.__rawStudents = dict()
 
         self.__register_handlers()
@@ -44,8 +45,7 @@ class Bot:
             self.__dialogs[tg_user.id]['generator'] = student_exists_branch()
         
         self.__dialogs[tg_user.id]['answer'] = next(self.__dialogs[tg_user.id]['generator'])
-        for message in self.__dialogs[tg_user.id]['answer'].text.messages:
-            context.bot.sendMessage(chat_id=tg_user.id, text=message, reply_markup=self.__dialogs[tg_user.id]['answer'].markup)
+        self.__send_message(context, tg_user.id, self.__dialogs[tg_user.id]['answer'])
     #endregion
 
     #region Message handler
@@ -53,10 +53,10 @@ class Bot:
     def __message_handler(self, 
                           update: tg.Update,
                           context: tg_ext.CallbackContext) -> None:
-        print("\nReceived", update, context, sep="\n")
+        print("\nReceived", update)
         tg_user = update.effective_user
 
-        if not(tg_user.id in self.__dialogs):
+        if not(tg_user.id in self.__dialogs) or not(self.__dialogs[tg_user.id].get('generator', None)):
             return self.__start_command_handler(update, context)
 
         #handle block
@@ -99,22 +99,20 @@ class Bot:
                 # FIXME: если студент в текущем запуске бота не общался с ним, вылетает KeyError
                 self.__dialogs[student_id]['generator'] = student_test_branch(test_name, variant_questions)
                 self.__dialogs[student_id]['answer'] = next(self.__dialogs[student_id]['generator'])
-                for message in self.__dialogs[student_id]['answer'].text.messages:
-                    context.bot.sendMessage(chat_id=student_id, text=message, reply_markup=self.__dialogs[student_id]['answer'].markup)
+                self.__send_message(context, student_id, self.__dialogs[student_id]['answer'])
         # Летучка началась
         # 
         # Можете остановить летучку кнопкой ниже
         elif (previousMessageId == TutorTestBranch.SUCCESS.value.id):
             if (update.message.text == TutorTestSuccessOptions.STOP.value):
                 filename = self.__db.tests.finish(self.__writtenTest.id)
-                print(filename)
-                context.bot.sendMessage(chat_id=tg_user.id, text=filename)
+                with open(filename, 'rb') as f:
+                    context.bot.sendDocument(chat_id=tg_user.id, document=f)
                 student_ids = [test.student_id for test in self.__writtenTest.student_tests]
                 for student_id in student_ids:
                     self.__dialogs[student_id]['generator'] = student_abort_test()
                     self.__dialogs[student_id]['answer'] = next(self.__dialogs[student_id]['generator'])
-                    for message in self.__dialogs[student_id]['answer'].text.messages:
-                        context.bot.sendMessage(chat_id=student_id, text=message, reply_markup=self.__dialogs[student_id]['answer'].markup)
+                    self.__send_message(context, student_id, self.__dialogs[student_id]['answer'])
                 self.__writtenTest == None
 
 
@@ -125,7 +123,21 @@ class Bot:
             self.__db.tests.save_answer(tg_user.id, self.__writtenTest.id, question_id, update.message.text)
         
 
-            
+        # Оцените результаты, выставьте баллы в соответствующую графу и пришлите изменённый файл в ответном сообщении
+        elif (previousMessageId == TutorCheckBranch.SEND_FILE.value.id):
+            if update.message.document:
+                self.__download_file(update, context, 'results/')
+                finished_test = self.__db.tests.post_finished('assets/runtime/results/' + update.message.document.file_name)
+                test_name = self.__db.tests.get('_id', finished_test.test_id).name
+                for test in finished_test.student_tests:
+                    max_mark = self.__db.tests.get_variant(finished_test.test_id, 'id', test.variant_id).sum_max_mark
+                    student_id = test.student_id
+                    self.__dialogs[student_id]['generator'] = student_check_branch(test_name, test.sum_mark, max_mark)
+                    self.__dialogs[student_id]['answer'] = next(self.__dialogs[student_id]['generator'])
+                    self.__send_message(context, student_id, self.__dialogs[student_id]['answer'])
+                    
+
+
 
 
 
@@ -139,12 +151,15 @@ class Bot:
             return self.__message_handler(update, context)
 
         print("\nAnswer: %r" % self.__dialogs[tg_user.id]['answer'].text.messages)
-        for message in self.__dialogs[tg_user.id]['answer'].text.messages:
-            context.bot.sendMessage(chat_id=tg_user.id, text=message, reply_markup=self.__dialogs[tg_user.id]['answer'].markup)
+        self.__send_message(context, tg_user.id, self.__dialogs[tg_user.id]['answer'])
 
     #endregion
 
     #region helpers
+
+    def __send_message(self, context, user_id, answer):
+        for message in answer.text.messages:
+            context.bot.sendMessage(chat_id=user_id, text=message, reply_markup=answer.markup)
 
     def __download_file(self, update, context, subpath = ''):
         name = update.message.document.file_name
