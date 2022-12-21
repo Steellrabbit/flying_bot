@@ -1,7 +1,6 @@
 import uuid
 import random
 from typing import Any
-from datetime import datetime
 from pathlib import Path
 
 from pymongo import database
@@ -10,6 +9,7 @@ import numpy as np
 import Levenshtein
 
 from .excels import ExcelService
+from ..utils.get_current_time import get_current_time
 from .users import UsersTable
 from .groups import GroupsTable
 from ..models.user import Student
@@ -119,7 +119,12 @@ class TestsTable():
             question_docs = []
 
             for question in variant.questions:
-                question_doc = { 'id': str(question.id), 'type': question.type, 'text': question.text, 'answer': question.answer, 'max_mark': question.max_mark }
+                question_doc = { 'id': str(question.id),\
+                        'type': question.type,\
+                        'text': question.text,\
+                        'answer_variants': question.answer_variants,\
+                        'answer': question.answer,\
+                        'max_mark': question.max_mark }
                 question_docs.append(question_doc)
 
             doc['questions'] = question_docs
@@ -133,7 +138,12 @@ class TestsTable():
             questions = []
 
             for question_doc in variant_doc['questions']:
-                question = RawTestQuestion(uuid.UUID(question_doc['id']), question_doc['type'], question_doc['text'], question_doc['answer'], question_doc['max_mark'])
+                question = RawTestQuestion(uuid.UUID(question_doc['id']),\
+                        question_doc['type'],\
+                        question_doc['text'],\
+                        question_doc['answer_variants'],\
+                        question_doc['answer'],\
+                        question_doc['max_mark'])
                 questions.append(question)
 
             variant = TestVariant(uuid.UUID(variant_doc['id']), variant_doc['name'], questions)
@@ -154,7 +164,7 @@ class TestsTable():
             raise Exception('Test was not found')
 
         id = uuid.uuid4()
-        start_time = datetime.today()
+        start_time = get_current_time()
         finish_time = None
         student_tests: list[StudentWrittenTest] = []
 
@@ -181,7 +191,7 @@ class TestsTable():
         if test is None:
             raise Exception('Written test was not found')
 
-        finish_time = datetime.today()
+        finish_time = get_current_time()
         test.finish_time = finish_time
         for student_test in test.student_tests:
             if student_test.finish_time is None:
@@ -200,7 +210,7 @@ class TestsTable():
         if student_test is None:
             raise Exception('Written test was not found')
 
-        finish_time = datetime.today()
+        finish_time = get_current_time()
         student_test.finish_time = finish_time
 
         test = self.get_written('_id', written_test_id)
@@ -245,7 +255,10 @@ class TestsTable():
                 answer_docs.append(answer_doc)
             doc['answers'] = answer_docs
             student_docs.append(doc)
-        return { 'test_id': test.test_id, 'start_time': test.start_time, 'finish_time': test.finish_time, 'student_tests': student_docs }
+        return { 'test_id': test.test_id,\
+                'start_time': test.start_time,\
+                'finish_time': test.finish_time,\
+                'student_tests': student_docs }
 
     def __written_from_document(self, doc: dict) -> WrittenTest:
         students = []
@@ -259,7 +272,11 @@ class TestsTable():
             student = StudentWrittenTest(uuid.UUID(student_doc['id']), student_doc['finish_time'], student_doc['student_id'], uuid.UUID(student_doc['variant_id']), answers)
             students.append(student)
 
-        return WrittenTest(doc['_id'], doc['test_id'], doc['start_time'], doc['finish_time'], students)
+        return WrittenTest(doc['_id'],\
+                doc['test_id'],\
+                doc['start_time'],\
+                doc['finish_time'],\
+                students)
 
     # endregion
 
@@ -268,11 +285,43 @@ class TestsTable():
 
     def __check_answer(self,
             question: TestQuestion,
-            text: str) -> float | None:
+            answer: str | int | list[int]) -> float | None:
         """Checks test question answer and returns mark if possible"""
         if question.type == TestAnswerType.LECTURE.value:
-           return Levenshtein.ratio(question.answer, text) * question.max_mark
+           return Levenshtein.ratio(question.answer, answer)
+
+        if question.type == TestAnswerType.SINGLE_CHOICE.value:
+            return int(question.answer == answer)
+
+        if question.type == TestAnswerType.MULTIPLE_CHOICE.value:
+            correct_answers = []
+            student_answers = []
+            for index, variant in enumerate(question.answer_variants):
+                correct_answers.append(index + 1 in question.answer)
+                student_answers.append(index in answer)
+            variant_count = len(question.answer_variants)
+            student_count = 0
+            for i in range(variant_count):
+                if correct_answers[i] == student_answers[i]:
+                    student_count += 1
+            return student_count / variant_count
+
         return None
+
+    def post_finished(self, filename: str) -> WrittenTest:
+        """Returns written test id"""
+        updated_test = self.__excel.read_written_test(filename)
+        written_test = self.get_written('finish_time', updated_test.date)
+
+        for student in updated_test.students:
+            student_test = self.get_student(None, 'name', student.name, written_test)
+            for i in range(len(student_test.answers)):
+                question = self.get_question(written_test.test_id, student_test.variant_id)
+                student_test.answers[i].mark = student.marks[i] / question.max_mark
+
+        self.__written_collection.update_one({ '_id': written_test.id }, {'$set': self.__written_to_document(test)})
+
+        return written_test
 
     # endregion
 

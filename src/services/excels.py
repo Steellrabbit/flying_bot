@@ -4,8 +4,17 @@ from pathlib import Path
 import pandas as pd
 import xlsxwriter as xls
 
-from ..models.excel import WrittenTestExcel, WrittenTestQuestionData, WrittenTestStudentData
-from ..models.test import RawTest, RawTestQuestion, Test, TestQuestion, TestVariant
+from ..models.excel import WrittenTestExcel,\
+        WrittenTestQuestionData,\
+        WrittenTestStudentData,\
+        UpdatedTestExcel,\
+        UpdatedStudentData
+from ..models.test import RawTest,\
+        RawTestQuestion,\
+        Test,\
+        TestQuestion,\
+        TestVariant,\
+        TestAnswerType
 
 
 class ExcelService():
@@ -31,8 +40,9 @@ class ExcelService():
             name = sheet_name
             sheet: pd.DataFrame = frame[sheet_name]
             questions = self.__read_questions(sheet)
+            sum_max_mark = sum(map(lambda q: q.max_mark, questions))
 
-            variant = TestVariant(id, name, questions)
+            variant = TestVariant(id, name, questions, sum_max_mark)
             variants.append(variant)
 
         return variants
@@ -42,15 +52,48 @@ class ExcelService():
 
         for row in sheet.to_dict(orient='records'):
             id = uuid.uuid4()
+
             text = row['вопрос']
+            answer_variants = None
             type = row['тип ответа']
+            if type == TestAnswerType.MULTIPLE_CHOICE.value\
+                    or type == TestAnswerType.SINGLE_CHOICE.value:
+                text = text.split('\n')
+                answer_variants = text[1:]
+                text = text[0]
+
             answer = None if pd.isna(row['ответ']) else row['ответ']
+            if type == TestAnswerType.MULTIPLE_CHOICE.value:
+                answer = map(lambda a: int(a.strip()), answer.split(','))
+            elif type == TestAnswerType.SINGLE_CHOICE.value:
+                answer = int(answer)
+
             max_mark = row['макс балл']
 
-            question = RawTestQuestion(id, type, text, answer, max_mark)
+            question = RawTestQuestion(id, type, text, answer_variants, answer, max_mark)
             questions.append(question)
 
         return questions
+
+    def read_written_test(self, filename: str) -> UpdatedTestExcel:
+        name = Path(filename).stem
+        test_name, test_date = name.split('_')
+        student_datas: list[UpdatedStudentData] = []
+
+        frame = pd.read_excel(filename, sheet_name=None)
+        for sheet_name in list(frame.keys())[:-1]:
+            sheet_frame = frame[sheet_name]
+            student_rows = [sheet_frame.columns.tolist()] + sheet_frame.values.tolist()
+            if (len(student_rows) <= 3):
+                continue
+
+            for student_row in student_rows[3:]:
+                student_name = student_row[0]
+                marks = student_row[3:-1:2]
+                student_data = UpdatedStudentData(student_name, marks)
+                student_datas.append(student_data)
+        return UpdatedTestExcel(test_name, test_date, student_datas)
+
 
     # endregion
 
@@ -60,7 +103,7 @@ class ExcelService():
     def write_written_test(self,
             test: WrittenTestExcel) -> str:
         """Writes test results into excel and returns excel filename"""
-        filename = f'assets/runtime/results/{test.name}_{str(test.date)}.xlsx'
+        filename = f'assets/runtime/results/{test.name}_{test.date}.xlsx'
         book = xls.Workbook(filename)
 
         student_mark_cells = dict()

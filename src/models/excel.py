@@ -1,4 +1,3 @@
-from datetime import datetime
 from dataclasses import dataclass
 
 
@@ -38,6 +37,18 @@ class WrittenTestSummarySheet:
 @dataclass
 class WrittenTestExcel:
     name: str
-    date: datetime
+    date: str
     variants: list[WrittenTestVariantSheet]
     summary: WrittenTestSummarySheet
+
+
+@dataclass
+class UpdatedTestExcel:
+    name: str
+    date: str
+    students: list[UpdatedStudentData]
+
+@dataclass
+class UpdatedStudentData:
+    name: str
+    marks: list[float]
