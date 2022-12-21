@@ -80,7 +80,7 @@ class TestsTable():
                     lambda t: t.variant_id == variant.id,
                     written_test.student_tests)
             for student_test in student_tests:
-                student = self.__students.get_student(student_test.student_id)
+                student = self.__students.get_student('telegram_id', student_test.student_id)
                 group: Group = self.__groups.get('_id', student.group_id)
                 student_group = group.name
 
@@ -235,6 +235,7 @@ class TestsTable():
         student_test = self.get_student(None, 'student_id', student_id, written_test)
         question = self.get_question(written_test.test_id, student_test.variant_id, None, question_id)
 
+        print('==========================', question, text)
         mark = self.__check_answer(question, text)
         id = uuid.uuid4()
         answer = TestAnswer(id, question_id, text, mark)
@@ -242,6 +243,8 @@ class TestsTable():
         if student_test is None:
             raise Exception('Written test was not found')
         student_test.answers.append(answer)
+
+        print(written_test)
 
         self.__written_collection.update_one({ '_id': written_test.id }, {'$set': self.__written_to_document(written_test)})
 
@@ -252,7 +255,7 @@ class TestsTable():
                     'finish_time': student_test.finish_time,\
                     'student_id': student_test.student_id,\
                     'variant_id': str(student_test.variant_id),\
-                    'sum_mark': student.sum_mark }
+                    'sum_mark': student_test.sum_mark }
             answer_docs = []
             for answer in student_test.answers:
                 answer_doc = { 'id': str(answer.id),\
@@ -303,7 +306,7 @@ class TestsTable():
             answer: str | int | list[int]) -> float | None:
         """Checks test question answer and returns mark if possible"""
         if question.type == TestAnswerType.LECTURE.value:
-           return Levenshtein.ratio(question.answer, answer)
+            return Levenshtein.ratio(question.answer, answer)
 
         if question.type == TestAnswerType.SINGLE_CHOICE.value:
             return int(question.answer == answer)
@@ -329,12 +332,14 @@ class TestsTable():
         written_test = self.get_written('finish_time', updated_test.date)
 
         for student in updated_test.students:
-            student_test = self.get_student(None, 'name', student.name, written_test)
+            student_user = self.__students.get_student('name', student.name)
+            student_test = self.get_student(None, 'student_id', student_user.id, written_test)
+            student_test.sum_mark = 0
             for i in range(len(student_test.answers)):
-                question = self.get_question(written_test.test_id, student_test.variant_id)
-                student_test.answers[i].mark = student.marks[i] / question.max_mark
-
-            student_test.sum_mark = sum(student.marks)
+                question = self.get_question(written_test.test_id, student_test.variant_id, i)
+                if student.marks[i] is not None:
+                    student_test.answers[i].mark = student.marks[i] / question.max_mark
+                student_test.sum_mark += (student_test.answers[i].mark or 0) * question.max_mark
 
         self.__written_collection.update_one({ '_id': written_test.id }, {'$set': self.__written_to_document(written_test)})
 
@@ -365,7 +370,6 @@ class TestsTable():
             index: int | None = None,
             question_id: uuid.UUID | None = None) -> TestQuestion | None:
         variant = self.get_variant(test_id, 'id', variant_id)
-        print(variant.questions)
         if variant is None: return None
 
         if question_id is not None:
@@ -374,7 +378,6 @@ class TestsTable():
 
         if index is None: return None
         if len(variant.questions) <= index: return None
-        print(variant.questions)
         return variant.questions[index]
 
     # endregion

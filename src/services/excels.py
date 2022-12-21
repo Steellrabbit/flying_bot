@@ -89,7 +89,7 @@ class ExcelService():
 
             for student_row in student_rows[3:]:
                 student_name = student_row[0]
-                marks = student_row[3:-1:2]
+                marks = list(map(lambda mark: None if pd.isna(mark) else mark, student_row[3:-1:2]))
                 student_data = UpdatedStudentData(student_name, marks)
                 student_datas.append(student_data)
         return UpdatedTestExcel(test_name, test_date, student_datas)
@@ -149,7 +149,7 @@ class ExcelService():
             sheet.write(0, 1 + col_offset + 1, 'балл')
             mark_cell = xls.utility.xl_rowcol_to_cell(1, 1 + col_offset + 1)
             mark_cells.append(mark_cell)
-            sheet.write(mark_cell, question.max_mark.value)
+            sheet.write(mark_cell, question.max_mark)
 
             col_offset += 2
 
@@ -176,15 +176,17 @@ class ExcelService():
 
             col_offset = 1
             mark_cells = []
-            for i in len(range(question_count)):
+            for i in range(question_count):
                 answer = student.answers[i].text if i < len(student.answers) else ''
+
+                print('!!!!!!!!!!!!!!!!!!!!', student.answers)
                 sheet.write(2 + row_offset, 1 + col_offset, answer)
 
                 mark = student.answers[i].mark if i < len(student.answers) else 0
-                mark_cell = xls.utility.xl_rowcol_to_cell(2 + row_offset, 1 + col_offset)
-                max_mark_cell = xls.utility.xl_rowcol_to_cell(1, 1 + col_offset)
+                mark_cell = xls.utility.xl_rowcol_to_cell(2 + row_offset, 2 + col_offset)
+                max_mark_cell = xls.utility.xl_rowcol_to_cell(1, 2 + col_offset)
                 mark_cells.append(mark_cell)
-                sheet.write_formula(mark_cell, f'={mark} * max_mark_cell')
+                sheet.write_formula(mark_cell, f'={mark or 0} * {max_mark_cell}')
 
                 col_offset += 2
 
