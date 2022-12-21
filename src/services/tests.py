@@ -248,10 +248,17 @@ class TestsTable():
     def __written_to_document(self, test: WrittenTest) -> dict:
         student_docs = []
         for student_test in test.student_tests:
-            doc = { 'id': str(student_test.id), 'finish_time': student_test.finish_time, 'student_id': student_test.student_id, 'variant_id': str(student_test.variant_id) }
+            doc = { 'id': str(student_test.id),\
+                    'finish_time': student_test.finish_time,\
+                    'student_id': student_test.student_id,\
+                    'variant_id': str(student_test.variant_id),\
+                    'sum_mark': student.sum_mark }
             answer_docs = []
             for answer in student_test.answers:
-                answer_doc = { 'id': str(answer.id), 'question_id': str(answer.question_id), 'text': answer.text, 'mark': answer.mark }
+                answer_doc = { 'id': str(answer.id),\
+                        'question_id': str(answer.question_id),\
+                        'text': answer.text,\
+                        'mark': answer.mark }
                 answer_docs.append(answer_doc)
             doc['answers'] = answer_docs
             student_docs.append(doc)
@@ -266,10 +273,18 @@ class TestsTable():
             answers = []
 
             for answer_doc in student_doc['answers']:
-                answer = TestAnswer(uuid.UUID(answer_doc['id']), uuid.UUID(answer_doc['question_id']), answer_doc['text'], answer_doc['mark'])
+                answer = TestAnswer(uuid.UUID(answer_doc['id']),\
+                        uuid.UUID(answer_doc['question_id']),\
+                        answer_doc['text'],\
+                        answer_doc['mark'])
                 answers.append(answer)
 
-            student = StudentWrittenTest(uuid.UUID(student_doc['id']), student_doc['finish_time'], student_doc['student_id'], uuid.UUID(student_doc['variant_id']), answers, None)
+            student = StudentWrittenTest(uuid.UUID(student_doc['id']),\
+                    student_doc['finish_time'],\
+                    student_doc['student_id'],\
+                    uuid.UUID(student_doc['variant_id']),\
+                    answers,\
+                    student_doc['sum_mark'])
             students.append(student)
 
         return WrittenTest(doc['_id'],\
@@ -318,6 +333,8 @@ class TestsTable():
             for i in range(len(student_test.answers)):
                 question = self.get_question(written_test.test_id, student_test.variant_id)
                 student_test.answers[i].mark = student.marks[i] / question.max_mark
+
+            student_test.sum_mark = sum(student.marks)
 
         self.__written_collection.update_one({ '_id': written_test.id }, {'$set': self.__written_to_document(written_test)})
 
