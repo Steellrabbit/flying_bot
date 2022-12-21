@@ -7,8 +7,8 @@ from datetime import datetime
 # region Test Question
 
 class TestAnswerType(Enum):
-    LECTURE = "из лекции",
-    FREE = "в свободной форме",
+    LECTURE = "из лекции"
+    FREE = "в свободной форме"
 
 @dataclass
 class RawTestQuestion:

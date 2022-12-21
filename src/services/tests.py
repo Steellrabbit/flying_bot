@@ -13,7 +13,7 @@ from .excels import ExcelService
 from .users import UsersTable
 from .groups import GroupsTable
 from ..models.user import Student
-from ..models.excel import WrittenTestExcel, WrittenTestVariantSheet,\
+from ..models.excel import WrittenTestExcel, WrittenTestGroup, WrittenTestStudentAnswer, WrittenTestStudentData, WrittenTestVariantSheet,\
         WrittenTestSummarySheet, WrittenTestQuestionData,\
         WrittenTestCalculable
 from ..models.group import Group
@@ -43,7 +43,7 @@ class TestsTable():
     def create(self, source: RawTest) -> Test:
         test = self.__excel.read_test(source)
 
-        doc = { 'filename': test.filename, 'name': test.name, 'variants': variants }
+        doc = self.__test_to_document(test)
         insert_result = self.__collection.insert_one(doc)
         found = self.__collection.find_one({ '_id': insert_result.inserted_id })
 
@@ -54,14 +54,14 @@ class TestsTable():
         if found is None: return
         return self.__test_from_document(found)
 
-    def get_many(self) -> list[Test]:
+    def get_all(self) -> list[Test]:
         found = self.__collection.find()
         return list(map(lambda doc: self.__test_from_document(doc), found))
 
     def __convert_to_excel(self, written_test: WrittenTest) -> WrittenTestExcel:
         test: Test = self.get('_id', written_test.test_id)
 
-        groups: dict[list[WrittentTestStudentData]] = dict()
+        groups: dict[list[WrittenTestStudentData]] = dict()
 
         variant_sheets: list[WrittenTestVariantSheet] = []
         for variant in test.variants:
@@ -69,7 +69,7 @@ class TestsTable():
 
             question_data: list[WrittenTestQuestionData] = []
             max_mark_offset = 3
-            for question in variant.question:
+            for question in variant.questions:
                 question_text = question.text
                 answer = question.answer or ''
 
@@ -78,7 +78,7 @@ class TestsTable():
                 max_mark_offset += 2
                 max_mark = WrittenTestCalculable(max_mark_value, max_mark_cell)
 
-                question_data_element = WrittenTestQuestionData(question_text, answer_text, max_mark)
+                question_data_element = WrittenTestQuestionData(question_text, answer, max_mark)
                 question_data.append(question_data_element)
 
             student_data: list[WrittenTestStudentData] = []
@@ -87,7 +87,7 @@ class TestsTable():
                     written_test.student_tests)
             mark_row_offset = 3
             for student_test in student_tests:
-                student: Student = self.__students.get_user(test.student_id)
+                student = self.__students.get_student(student_test.student_id)
                 student_name = student.name
                 group: Group = self.__groups.get('_id', student.group_id)
                 student_group = group.name
@@ -123,10 +123,36 @@ class TestsTable():
             group_data_element = WrittenTestGroup(group_name, group_students)
             group_data.append(group_data_element)
         summary_sheet = WrittenTestSummarySheet(group_data)
-        return WrittenTestExcel(test.name, written_test.finish_time, variant_sheet, summary_sheet)
+        return WrittenTestExcel(test.name, written_test.finish_time, variant_sheets, summary_sheet)
 
-    def __test_from_document(doc: dict) -> Test:
-        return Test(doc['filename'], doc['_id'], doc['name'], doc['variants'])
+    def __test_to_document(self, test: Test) -> dict:
+        variant_docs = []
+        for variant in test.variants:
+            doc = { 'id': str(variant.id), 'name': variant.name }
+            question_docs = []
+
+            for question in variant.questions:
+                question_doc = { 'id': str(question.id), 'type': question.type, 'text': question.text, 'answer': question.answer, 'max_mark': question.max_mark }
+                question_docs.append(question_doc)
+
+            doc['questions'] = question_docs
+            variant_docs.append(doc)
+
+        return { 'filename': test.filename, 'name': test.name, 'variants': variant_docs }
+
+    def __test_from_document(self, doc: dict) -> Test:
+        variants = []
+        for variant_doc in doc['variants']:
+            questions = []
+
+            for question_doc in variant_doc['questions']:
+                question = RawTestQuestion(uuid.UUID(question_doc['id']), question_doc['type'], question_doc['text'], question_doc['answer'], question_doc['max_mark'])
+                questions.append(question)
+
+            variant = TestVariant(uuid.UUID(variant_doc['id']), variant_doc['name'], questions)
+            variants.append(variant)
+
+        return Test(doc['filename'], doc['_id'], doc['name'], variants)
 
     # endregion
 
@@ -135,7 +161,7 @@ class TestsTable():
 
     def start(self,
             test_id: uuid.UUID,
-            student_ids: list[uuid.UUID]) -> WrittenTest:
+            student_ids: list[int]) -> WrittenTest:
         test = self.get('_id', test_id)
         if test is None:
             raise Exception('Test was not found')
@@ -153,9 +179,9 @@ class TestsTable():
             student_test = StudentWrittenTest(id, finish_time, student_id, variant_id, answers)
             student_tests.append(student_test)
 
-        doc = { 'test_id': test_id, 'start_time': start_time, 'finish_time': finish_time, 'student_tests': student_tests }
+        doc = self.__written_to_document(WrittenTest(id, test_id, start_time, finish_time, student_tests))
         insert_result = self.__written_collection.insert_one(doc)
-        found = self.__collection.find_one({ '_id': insert_result.inserted_id })
+        found = self.__written_collection.find_one({ '_id': insert_result.inserted_id })
         return self.__written_from_document(found)
 
     def get_written(self, property: str, value: Any) -> WrittenTest | None:
@@ -174,7 +200,8 @@ class TestsTable():
             if student_test.finish_time is None:
                 student_test.finish_time = finish_time
 
-        self.__collection.update_one({ '_id': test.id }, test)
+        self.__written_collection.update_one({ '_id': test.id }, {'$set': self.__written_to_document(test)})
+
 
         excel = self.__convert_to_excel(test)
         return self.__excel.write_written_test(excel)
@@ -190,13 +217,15 @@ class TestsTable():
         student_test.finish_time = finish_time
 
         test = self.get_written('_id', written_test_id)
-        self.__collection.update_one({ '_id': test.id }, test)
+        self.__written_collection.update_one({ '_id': test.id }, {'$set': self.__written_to_document(test)})
+
 
     def get_student(self,
-            written_test_id: uuid.UUID,
+            written_test_id: uuid.UUID | None,
             student_test_prop: str,
-            value: Any) -> StudentWrittenTest | None:
-        test = self.get_written('_id', written_test_id)
+            value: Any,
+            written_test: WrittenTest | None = None) -> StudentWrittenTest | None:
+        test = self.get_written('_id', written_test_id) if written_test_id else written_test
         if test is None: return None
         return get_from_list(test.student_tests, student_test_prop, value)
 
@@ -205,10 +234,9 @@ class TestsTable():
             written_test_id: uuid.UUID,
             question_id: uuid.UUID,
             text: str) -> None:
-        student_test = self.get_student(written_test_id, 'student_id', student_id)
         written_test = self.get_written('_id', written_test_id)
-        question = self.get_question(written_test.test_id,\
-                student_test.variant_id)
+        student_test = self.get_student(None, 'student_id', student_id, written_test)
+        question = self.get_question(written_test.test_id, student_test.variant_id, None, question_id)
 
         mark = self.__check_answer(question, text)
         id = uuid.uuid4()
@@ -218,13 +246,33 @@ class TestsTable():
             raise Exception('Written test was not found')
         student_test.answers.append(answer)
 
-        self.__collection.update_one({ '_id': written_test.id }, written_test)
+        self.__written_collection.update_one({ '_id': written_test.id }, {'$set': self.__written_to_document(written_test)})
 
-    def __written_to_document(test: WrittenTest) -> dict:
-        return { 'test_id': test.test_id, 'start_time': test.start_time, 'finish_time': test.finish_time, 'student_tests': test.student_tests }
+    def __written_to_document(self, test: WrittenTest) -> dict:
+        student_docs = []
+        for student_test in test.student_tests:
+            doc = { 'id': str(student_test.id), 'finish_time': student_test.finish_time, 'student_id': student_test.student_id, 'variant_id': str(student_test.variant_id) }
+            answer_docs = []
+            for answer in student_test.answers:
+                answer_doc = { 'id': str(answer.id), 'question_id': str(answer.question_id), 'text': answer.text, 'mark': answer.mark }
+                answer_docs.append(answer_doc)
+            doc['answers'] = answer_docs
+            student_docs.append(doc)
+        return { 'test_id': test.test_id, 'start_time': test.start_time, 'finish_time': test.finish_time, 'student_tests': student_docs }
 
-    def __written_from_document(doc: dict) -> WrittenTest:
-        return WrittenTest(doc['_id'], doc['test_id'], doc['start_time'], doc['finish_time'], doc['student_tests'])
+    def __written_from_document(self, doc: dict) -> WrittenTest:
+        students = []
+        for student_doc in doc['student_tests']:
+            answers = []
+
+            for answer_doc in student_doc['answers']:
+                answer = TestAnswer(uuid.UUID(answer_doc['id']), uuid.UUID(answer_doc['question_id']), answer_doc['text'], answer_doc['mark'])
+                answers.append(answer)
+
+            student = StudentWrittenTest(uuid.UUID(student_doc['id']), student_doc['finish_time'], student_doc['student_id'], uuid.UUID(student_doc['variant_id']), answers)
+            students.append(student)
+
+        return WrittenTest(doc['_id'], doc['test_id'], doc['start_time'], doc['finish_time'], students)
 
     # endregion
 
@@ -235,7 +283,7 @@ class TestsTable():
             question: TestQuestion,
             text: str) -> float | None:
         """Checks test question answer and returns mark if possible"""
-        if question.type == TestAnswerType.LECTURE:
+        if question.type == TestAnswerType.LECTURE.value:
            return Levenshtein.ratio(question.answer, text) * question.max_mark
         return None
 
@@ -264,6 +312,7 @@ class TestsTable():
             index: int | None = None,
             question_id: uuid.UUID | None = None) -> TestQuestion | None:
         variant = self.get_variant(test_id, 'id', variant_id)
+        print(variant.questions)
         if variant is None: return None
 
         if question_id is not None:
@@ -272,6 +321,7 @@ class TestsTable():
 
         if index is None: return None
         if len(variant.questions) <= index: return None
+        print(variant.questions)
         return variant.questions[index]
 
     # endregion

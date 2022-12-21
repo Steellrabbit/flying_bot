@@ -5,7 +5,7 @@ import pandas as pd
 import xlsxwriter as xls
 
 from ..models.excel import WrittenTestExcel
-from ..models.test import RawTest, Test, TestQuestion, TestVariant
+from ..models.test import RawTest, RawTestQuestion, Test, TestQuestion, TestVariant
 
 
 class ExcelService():
@@ -23,7 +23,7 @@ class ExcelService():
 
         return Test(filename, id, name, variants)
 
-    def __read_variants(self, excel: pd.DataFrame) -> list[TestVariant]:
+    def __read_variants(self, frame: pd.DataFrame) -> list[TestVariant]:
         variants: list[TestVariant] = []
 
         for sheet_name in frame.keys():
@@ -50,7 +50,7 @@ class ExcelService():
             question = RawTestQuestion(id, type, text, answer, max_mark)
             questions.append(question)
 
-        return question
+        return questions
 
     # endregion
 
@@ -60,11 +60,11 @@ class ExcelService():
     def write_written_test(self,
             test: WrittenTestExcel) -> str:
         """Writes test results into excel and returns excel filename"""
-        filename = f'${test.name}_{str(test.date)}.xlsx'
+        filename = f'assets/runtime/results/{test.name}_{str(test.date)}.xlsx'
         book = xls.Workbook(filename)
 
         for variant in test.variants:
-            sheet = file.add_worksheet(variant.name)
+            sheet = book.add_worksheet(variant.name)
             sheet.write(0, 1, 'вопрос')
             sheet.write(1, 1, 'ответ')
 
@@ -87,12 +87,13 @@ class ExcelService():
                 answer_column_offset = 1
                 for answer in student.answers:
                     sheet.write(2 + student_row_offset, 1 + answer_column_offset, answer.text)
-                    sheet.write(2 + student_row_offset, 1 + answer_column_offset + 1, answer.mark.value)
+                    sheet.write(2 + student_row_offset, 1 + answer_column_offset + 1, answer.mark.value or 0)
                     answer_column_offset += 2
-                sheet_write(2 + student_row_offset, 1 + answer_column_offset, sum(map(lambda a: a.mark.value, student.answers)))
+                # FIXME если ответов меньше максимума - сумма вписывается в неправильную ячейку
+                sheet.write(2 + student_row_offset, 1 + answer_column_offset, sum(map(lambda a: a.mark.value or 0, student.answers)))
                 student_row_offset += 1
 
-        sheet = file.add_worksheet('группы')
+        sheet = book.add_worksheet('группы')
         row_offset = 0
         for group in test.summary.groups:
             sheet.write(0 + row_offset, 0, group.group)
@@ -103,7 +104,7 @@ class ExcelService():
             for student in group.students:
                 sheet.write(0 + row_offset, 0, student_number)
                 sheet.write(0 + row_offset, 1, student.name)
-                sheet.write(0 + row_offset, 2, sum(map(lambda a: a.mark.value, student.answers)))
+                sheet.write(0 + row_offset, 2, sum(map(lambda a: a.mark.value or 0, student.answers)))
                 student_number += 1
                 row_offset += 1
             row_offset += 1

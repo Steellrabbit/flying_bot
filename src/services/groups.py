@@ -21,7 +21,7 @@ class GroupsTable():
         found = self.__collection.find_one({ '_id': insert_result.inserted_id })
         return self.__from_document(found)
 
-    def get_many(self) -> list[Group]:
+    def get_all(self) -> list[Group]:
         found = self.__collection.find()
         return list(map(lambda doc: self.__from_document(doc), found))
 
@@ -30,5 +30,5 @@ class GroupsTable():
         if found is None: return
         return self.__from_document(found)
 
-    def __from_document(doc: dict) -> Group:
+    def __from_document(self, doc: dict) -> Group:
         return Group(doc['name'], doc['_id'])
