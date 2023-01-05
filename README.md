@@ -11,11 +11,12 @@
 
 ```python
 TELEGRAM_TOKEN="paste your token here"
+DB_URL="paste your db url here"
 ```
 
 где:
 * `TELEGRAM_TOKEN` &mdash; токен бота в Telegram.
-
+* `DB_URL` &mdash; URL для подключения к БД MongoDB.
 
 #### Создание виртуального окружения
 
