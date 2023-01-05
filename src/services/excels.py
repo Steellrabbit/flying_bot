@@ -6,6 +6,8 @@ import xlsxwriter as xls
 import xlsxwriter.worksheet as xls_worksheet
 import xlsxwriter.utility as xls_utility
 
+from config import RUNTIME_FOLDER, WRITTEN_TESTS_FOLDERNAME
+
 from ..models.excel import WrittenTestExcel,\
         WrittenTestQuestionData,\
         WrittenTestStudentData,\
@@ -106,7 +108,7 @@ class ExcelService():
     def write_written_test(self,
             test: WrittenTestExcel) -> str:
         """Writes test results into excel and returns excel filename"""
-        filename = f'assets/runtime/results/{test.name}_{test.date}.xlsx'
+        filename = f'{RUNTIME_FOLDER}/{WRITTEN_TESTS_FOLDERNAME}/{test.name}_{test.date}.xlsx'
         book = xls.Workbook(filename)
 
         student_mark_cells = dict()

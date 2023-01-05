@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
-from models.test import TestAnswerValue
+from .test import TestAnswerValue
 
 
 @dataclass

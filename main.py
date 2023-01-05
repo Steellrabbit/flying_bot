@@ -1,12 +1,6 @@
 # import dotenv
 
-import os
-import pathlib
-import shutil
 from src.services.bot import Bot
-from src.services.tests import TestsTable
-from src.models.test import RawTest
-
 
 
 def main() -> None:
@@ -14,10 +8,6 @@ def main() -> None:
     token = '5740305400:AAFrJczOygRrm4208qABXXe5UuLRFoaUSxI' # dotenv.dotenv_values()['telegram_token']
     db_url = 'mongodb://localhost:27017'
     # date_format = dotenv.dotenv_values()['date_format']
-
-    shutil.rmtree('assets/runtime')
-    pathlib.Path('assets/runtime/tests').mkdir(parents=True, exist_ok=True)
-    pathlib.Path('assets/runtime/results').mkdir(parents=True, exist_ok=True)
     
     bot = Bot(token, db_url) #, date_format)
     bot.idle()

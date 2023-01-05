@@ -5,6 +5,8 @@ from typing import Any, cast
 from pymongo import database
 import Levenshtein
 
+from config import TEST_COLLECTION_NAME, WRITTEN_TEST_COLLECTION_NAME
+
 from .excels import ExcelService
 from ..utils.get_current_time import get_current_time
 from .users import UsersTable
@@ -17,15 +19,12 @@ from ..models.test import RawTest, Test, TestAnswerValue, TestQuestion,\
 from ..utils.get_from_list import get_from_list
 
 
-TEST_COLLECTION = 'tests'
-WRITTEN_TEST_COLLECTION = 'written-tests'
-
 class TestsTable():
 
     def __init__(self,
             db: database.Database) -> None:
-        self.__collection = db[TEST_COLLECTION]
-        self.__written_collection = db[WRITTEN_TEST_COLLECTION]
+        self.__collection = db[TEST_COLLECTION_NAME]
+        self.__written_collection = db[WRITTEN_TEST_COLLECTION_NAME]
 
         self.__students = UsersTable(db)
         self.__groups = GroupsTable(db)
@@ -51,6 +50,9 @@ class TestsTable():
     def get_all(self) -> list[Test]:
         found = self.__collection.find()
         return list(map(lambda doc: self.__test_from_document(doc), found))
+
+    def remove_all(self) -> None:
+        self.__collection.delete_many({})
 
     def __convert_to_excel(self, written_test: WrittenTest) -> WrittenTestExcel:
         test = self.get('_id', written_test.test_id)
@@ -197,6 +199,9 @@ class TestsTable():
         found = self.__written_collection.find_one({ property: value })
         if found is None: return
         return self.__written_from_document(found)
+
+    def remove_written(self) -> None:
+        self.__written_collection.delete_many({})
 
     def finish(self, written_test_id: uuid.UUID) -> str:
         test = self.get_written('_id', written_test_id)

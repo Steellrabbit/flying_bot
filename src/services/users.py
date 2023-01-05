@@ -3,16 +3,16 @@ from pymongo import database
 
 import uuid
 
+from config import USER_COLLECTION_NAME
+
 from ..models.user import User, Student, RawStudent
 
-
-USER_COLLECTION = 'users'
 
 class UsersTable():
 
     def __init__(self,
             db: database.Database) -> None:
-        self.__collection = db[USER_COLLECTION]
+        self.__collection = db[USER_COLLECTION_NAME]
 
 
     # region Tutor
@@ -29,6 +29,9 @@ class UsersTable():
 
     def __user_from_document(self, doc: dict) -> User:
         return User(doc['telegram_id'], doc['is_tutor'])
+
+    def remove_tutor(self) -> None:
+        self.__collection.delete_one({ '$eq': { 'is_tutor': True } })
 
     # endregion
 
@@ -53,6 +56,9 @@ class UsersTable():
     def __student_from_document(self, doc: dict) -> Student:
         return Student(doc['telegram_id'], doc['is_tutor'], doc['name'], doc['group_id'])
 
+    def remove_students(self) -> None:
+        self.__collection.delete_many({ '$eq': { 'is_tutor': False } })
+
     # endregion
 
 
@@ -66,5 +72,8 @@ class UsersTable():
     def get_users(self) -> list[User]:
         found = self.__collection.find()
         return list(map(lambda doc: self.__user_from_document(doc), found))
+
+    def remove_users(self) -> None:
+        self.__collection.delete_many({})
 
     # endregion

@@ -2,16 +2,16 @@ from pymongo import database
 
 from typing import Any, cast
 
+from config import GROUP_COLLECTION_NAME
+
 from ..models.group import RawGroup, Group
 
-
-GROUP_COLLECTION = 'groups'
 
 class GroupsTable():
 
     def __init__(self,
             db: database.Database) -> None:
-        self.__collection = db[GROUP_COLLECTION]
+        self.__collection = db[GROUP_COLLECTION_NAME]
 
     def create(self, source: RawGroup) -> Group:
         doc = { 'name': source.name }
@@ -28,5 +28,9 @@ class GroupsTable():
         if found is None: return
         return self.__from_document(found)
 
+    def remove_all(self) -> None:
+        self.__collection.delete_many({})
+
     def __from_document(self, doc: dict) -> Group:
         return Group(doc['name'], doc['_id'])
+    
