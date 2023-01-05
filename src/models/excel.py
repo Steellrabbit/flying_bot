@@ -1,15 +1,17 @@
 from dataclasses import dataclass
 
+from models.test import TestAnswerValue
+
 
 @dataclass
 class WrittenTestStudentAnswer:
-    text: str
-    mark: float
+    value: TestAnswerValue
+    mark: float | None
 
 @dataclass
 class WrittenTestQuestionData:
     question: str
-    answer: str
+    answer: TestAnswerValue
     max_mark: float
 
 @dataclass
@@ -44,7 +46,7 @@ class WrittenTestExcel:
 @dataclass
 class UpdatedStudentData:
     name: str
-    marks: list[float]
+    marks: list[float | None]
 
 @dataclass
 class UpdatedTestExcel:

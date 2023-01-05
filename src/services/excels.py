@@ -3,6 +3,8 @@ from pathlib import Path
 
 import pandas as pd
 import xlsxwriter as xls
+import xlsxwriter.worksheet as xls_worksheet
+import xlsxwriter.utility as xls_utility
 
 from ..models.excel import WrittenTestExcel,\
         WrittenTestQuestionData,\
@@ -10,7 +12,6 @@ from ..models.excel import WrittenTestExcel,\
         UpdatedTestExcel,\
         UpdatedStudentData
 from ..models.test import RawTest,\
-        RawTestQuestion,\
         Test,\
         TestQuestion,\
         TestVariant,\
@@ -32,7 +33,7 @@ class ExcelService():
 
         return Test(filename, id, name, variants)
 
-    def __read_variants(self, frame: pd.DataFrame) -> list[TestVariant]:
+    def __read_variants(self, frame: dict[str, pd.DataFrame]) -> list[TestVariant]:
         variants: list[TestVariant] = []
 
         for sheet_name in frame.keys():
@@ -63,14 +64,15 @@ class ExcelService():
                 text = text[0]
 
             answer = None if pd.isna(row['ответ']) else row['ответ']
-            if type == TestAnswerType.MULTIPLE_CHOICE.value:
-                answer = map(lambda a: int(a.strip()), answer.split(','))
-            elif type == TestAnswerType.SINGLE_CHOICE.value:
-                answer = int(answer)
+            if answer is not None:
+                if type == TestAnswerType.MULTIPLE_CHOICE.value:
+                    answer = list(map(lambda a: int(a.strip()), answer.split(',')))
+                elif type == TestAnswerType.SINGLE_CHOICE.value:
+                    answer = int(answer)
 
             max_mark = row['макс балл']
 
-            question = RawTestQuestion(id, type, text, answer_variants, answer, max_mark)
+            question = TestQuestion(type, text, answer_variants, answer, max_mark, id)
             questions.append(question)
 
         return questions
@@ -89,7 +91,8 @@ class ExcelService():
 
             for student_row in student_rows[3:]:
                 student_name = student_row[0]
-                marks = list(map(lambda mark: None if pd.isna(mark) else mark, student_row[3:-1:2]))
+                marks = list(map(lambda mark: None if pd.isna(mark) else float(mark),\
+                        student_row[3:-1:2]))
                 student_data = UpdatedStudentData(student_name, marks)
                 student_datas.append(student_data)
         return UpdatedTestExcel(test_name, test_date, student_datas)
@@ -135,7 +138,7 @@ class ExcelService():
         return filename
 
     def __write_questions(self,
-            sheet: xls.worksheet.Worksheet,
+            sheet: xls_worksheet.Worksheet,
             questions: list[WrittenTestQuestionData]) -> None:
         sheet.write('B1', 'вопрос')
         sheet.write('B2', 'ответ')
@@ -147,7 +150,7 @@ class ExcelService():
             sheet.write(1, 1 + col_offset, question.answer)
 
             sheet.write(0, 1 + col_offset + 1, 'балл')
-            mark_cell = xls.utility.xl_rowcol_to_cell(1, 1 + col_offset + 1)
+            mark_cell = xls_utility.xl_rowcol_to_cell(1, 1 + col_offset + 1)
             mark_cells.append(mark_cell)
             sheet.write(mark_cell, question.max_mark)
 
@@ -157,7 +160,7 @@ class ExcelService():
         sheet.write(1, 1 + col_offset, f"=SUM({', '.join(mark_cells)})")
 
     def __write_students(self,
-            sheet: xls.worksheet.Worksheet(),
+            sheet: xls_worksheet.Worksheet,
             students: list[WrittenTestStudentData],
             question_count: int) -> dict[str, str]:
         """
@@ -177,21 +180,20 @@ class ExcelService():
             col_offset = 1
             mark_cells = []
             for i in range(question_count):
-                answer = student.answers[i].text if i < len(student.answers) else ''
+                answer = student.answers[i].value if i < len(student.answers) else ''
 
-                print('!!!!!!!!!!!!!!!!!!!!', student.answers)
                 sheet.write(2 + row_offset, 1 + col_offset, answer)
 
                 mark = student.answers[i].mark if i < len(student.answers) else 0
-                mark_cell = xls.utility.xl_rowcol_to_cell(2 + row_offset, 2 + col_offset)
-                max_mark_cell = xls.utility.xl_rowcol_to_cell(1, 2 + col_offset)
+                mark_cell = xls_utility.xl_rowcol_to_cell(2 + row_offset, 2 + col_offset)
+                max_mark_cell = xls_utility.xl_rowcol_to_cell(1, 2 + col_offset)
                 mark_cells.append(mark_cell)
-                sheet.write_formula(mark_cell, f'={mark or 0} * {max_mark_cell}')
+                sheet.write(mark_cell, f'={mark or 0} * {max_mark_cell}')
 
                 col_offset += 2
 
-            sum_mark_cell = xls.utility.xl_rowcol_to_cell(2 + row_offset, 1 + col_offset)
-            sheet.write_formula(sum_mark_cell, f"=SUM({', '.join(mark_cells)})")
+            sum_mark_cell = xls_utility.xl_rowcol_to_cell(2 + row_offset, 1 + col_offset)
+            sheet.write(sum_mark_cell, f"=SUM({', '.join(mark_cells)})")
             sum_mark_cell_map[str(student.id)] = sum_mark_cell
 
             row_offset += 1

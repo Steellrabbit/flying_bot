@@ -1,4 +1,3 @@
-from imghdr import tests
 import telegram as tg
 import telegram.ext as tg_ext
 

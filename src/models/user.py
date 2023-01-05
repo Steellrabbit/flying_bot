@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+import uuid
 
 @dataclass
 class RawUser:
@@ -11,7 +12,7 @@ class User(RawUser):
 @dataclass
 class RawStudent(RawUser):
     name: str
-    group_id: int
+    group_id: uuid.UUID
 
 @dataclass
 class Student(RawStudent, User):

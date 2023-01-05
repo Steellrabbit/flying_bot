@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, cast
 from pymongo import database
 
 import uuid
@@ -25,7 +25,7 @@ class UsersTable():
         doc = { 'telegram_id': id, 'is_tutor': True }
         insert_result = self.__collection.insert_one(doc)
         found = self.__collection.find_one({ '_id': insert_result.inserted_id })
-        return self.__user_from_document(found)
+        return self.__user_from_document(cast(dict, found))
 
     def __user_from_document(self, doc: dict) -> User:
         return User(doc['telegram_id'], doc['is_tutor'])
@@ -39,7 +39,7 @@ class UsersTable():
         doc = { 'telegram_id': source.id, 'is_tutor': False, 'name': source.name, 'group_id': source.group_id }
         insert_result = self.__collection.insert_one(doc)
         found = self.__collection.find_one({ '_id': insert_result.inserted_id })
-        return self.__student_from_document(found)
+        return self.__student_from_document(cast(dict, found))
 
     def get_students(self, group_id: uuid.UUID) -> list[Student]:
         found = self.__collection.find({ 'is_tutor': False, 'group_id': group_id })
