@@ -1,15 +1,25 @@
+import os
 import dotenv
 
 from src.services.bot import Bot
 
 
 def main() -> None:
-    env = dotenv.dotenv_values('.env')
-    if env['TELEGRAM_TOKEN'] is None\
-            or env['DB_URL'] is None:
-        raise Exception('Bot token or database url is not provided in .env')
+    dotenv.load_dotenv()
+    env = os.environ
+    mandatory_vars = [
+            'TELEGRAM_TOKEN',
+            'MONGODB_DATABASE',
+            'MONGODB_USERNAME',
+            'MONGODB_PASSWORD',
+            'MONGODB_HOSTNAME',
+            ]
+    for key in mandatory_vars:
+        if key not in env:
+            raise Exception('One of mandatory environment variables is not provided')
+    db_uri = f'mongodb://{env["MONGODB_USERNAME"]}:{env["MONGODB_PASSWORD"]}@{env["MONGODB_HOST"]}:27017/{env["MONGODB_DATABASE"]}?authSource=admin'
     
-    bot = Bot(env['TELEGRAM_TOKEN'], env['DB_URL']) #, date_format)
+    bot = Bot(env['TELEGRAM_TOKEN'], db_uri)
     bot.idle()
 
 

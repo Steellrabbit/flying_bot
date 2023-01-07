@@ -1,8 +1,9 @@
+import os
 import pathlib
 import shutil
 from pymongo import MongoClient, database
 
-from config import DATABASE_NAME, GROUP_COLLECTION_NAME, RUNTIME_FOLDER, \
+from config import GROUP_COLLECTION_NAME, RUNTIME_FOLDER, \
         TEST_COLLECTION_NAME, TESTS_FOLDERNAME, USER_COLLECTION_NAME, \
         WRITTEN_TEST_COLLECTION_NAME, WRITTEN_TESTS_FOLDERNAME
 
@@ -54,7 +55,7 @@ class DataBase():
     #region Database
 
     def create_database(self) -> database.Database:
-        db = self.__db_client.get_database(DATABASE_NAME)
+        db = self.__db_client.get_database(os.environ['MONGODB_DATABASE'])
         self.__create_db_collection(db, GROUP_COLLECTION_NAME)
         self.__create_db_collection(db, TEST_COLLECTION_NAME)
         self.__create_db_collection(db, WRITTEN_TEST_COLLECTION_NAME)
@@ -67,7 +68,7 @@ class DataBase():
         collection.delete_one({ '_id': insertion.inserted_id })
 
     def clear_database(self) -> None:
-        self.__db_client.drop_database(DATABASE_NAME)
+        self.__db_client.drop_database(os.environ['MONGODB_DATABASE'])
         self.create_database()
 
     #endregion

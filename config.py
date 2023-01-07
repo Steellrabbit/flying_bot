@@ -1,5 +1,4 @@
 ##### Database #####
-DATABASE_NAME = 'flying-bot'
 TEST_COLLECTION_NAME = 'tests'
 WRITTEN_TEST_COLLECTION_NAME = 'written-tests'
 USER_COLLECTION_NAME = 'users'
