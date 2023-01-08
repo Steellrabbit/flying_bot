@@ -135,9 +135,6 @@ class ExcelService():
             book: xls.Workbook,
             sheet: xls_worksheet.Worksheet,
             questions: list[WrittenTestQuestionData]) -> None:
-        wrapped_format = book.add_format(WRAPPED_FORMAT)
-        heading_format = book.add_format(HEADING_FORMAT)
-        centered_heading_format = book.add_format(CENTERED_HEADING_FORMAT)
         right_bordered_format = book.add_format(RIGHT_BORDERED_FORMAT)
         column_bg_colored_format = book.add_format(COLUMN_BG_COLORED_FORMAT)
         row_bg_colored_format = book.add_format(ROW_BG_COLORED_FORMAT)
@@ -148,32 +145,58 @@ class ExcelService():
             **ROW_BG_COLORED_FORMAT,
             }))
         sheet.set_column(0, 0, 250, column_bg_colored_format) # Column A
-        sheet.set_column(1, 1, 80, book.add_format({
+        sheet.set_column(1, 1, 160, book.add_format({
             **RIGHT_BORDERED_FORMAT,
             **COLUMN_BG_COLORED_FORMAT,
             })) # Column B
 
-        sheet.write('B1', 'Вопрос', heading_format)
-        sheet.write('B2', 'Ответ', heading_format)
+        sheet.write('B1', 'Вопрос', book.add_format({
+            **HEADING_FORMAT,
+            **COLUMN_BG_COLORED_FORMAT,
+            **RIGHT_BORDERED_FORMAT,
+            }))
+        sheet.write('B2', 'Ответ', book.add_format({
+            **HEADING_FORMAT,
+            **COLUMN_BG_COLORED_FORMAT,
+            **RIGHT_BORDERED_FORMAT,
+            }))
 
         col_offset = 1
         mark_cells = []
         for question in questions:
             sheet.set_column(1 + col_offset, 1 + col_offset, 350)
-            sheet.write(0, 1 + col_offset, question.question, wrapped_format)
-            sheet.write(1, 1 + col_offset, question.answer, wrapped_format)
+            sheet.write(0, 1 + col_offset, question.question, book.add_format({
+                **ROW_BG_COLORED_FORMAT,
+                **WRAPPED_FORMAT,
+                }))
+            sheet.write(1, 1 + col_offset, question.answer, book.add_format({
+                **ROW_BG_COLORED_FORMAT,
+                **WRAPPED_FORMAT,
+                }))
 
             sheet.set_column(1 + col_offset + 1, 1 + col_offset + 1, 45, right_bordered_format)
-            sheet.write(0, 1 + col_offset + 1, 'Балл', centered_heading_format)
+            sheet.write(0, 1 + col_offset + 1, 'Балл', book.add_format({
+                **CENTERED_HEADING_FORMAT,
+                **ROW_BG_COLORED_FORMAT,
+                **RIGHT_BORDERED_FORMAT,
+                }))
             mark_cell = xls_utility.xl_rowcol_to_cell(1, 1 + col_offset + 1)
             mark_cells.append(mark_cell)
-            sheet.write(mark_cell, question.max_mark)
+            sheet.write(mark_cell, question.max_mark, book.add_format({
+                **ROW_BG_COLORED_FORMAT,
+                **RIGHT_BORDERED_FORMAT,
+                }))
 
             col_offset += 2
 
         sheet.set_column(1 + col_offset, 1 + col_offset, 55)
-        sheet.write(0, 1 + col_offset, 'Сумма', centered_heading_format)
-        sheet.write(1, 1 + col_offset, f"=SUM({', '.join(mark_cells)})")
+        sheet.write(0, 1 + col_offset, 'Сумма', book.add_format({
+            **CENTERED_HEADING_FORMAT,
+            **ROW_BG_COLORED_FORMAT,
+            }))
+        sheet.write(1, 1 + col_offset, f"=SUM({', '.join(mark_cells)})", book.add_format({
+            **ROW_BG_COLORED_FORMAT,
+            }))
 
     def __write_students(self,
             book: xls.Workbook,
@@ -186,15 +209,24 @@ class ExcelService():
         Returns: student.id-sum_mark_cell map
         """
         wrapped_format = book.add_format(WRAPPED_FORMAT)
-        heading_format = book.add_format(HEADING_FORMAT)
-        sheet.write('A3', 'Студент', heading_format)
-        sheet.write('B3', 'Группа', heading_format)
+        sheet.write('A3', 'Студент', book.add_format({
+            **HEADING_FORMAT,
+            **COLUMN_BG_COLORED_FORMAT,
+            }))
+        sheet.write('B3', 'Группа', book.add_format({
+            **HEADING_FORMAT,
+            **COLUMN_BG_COLORED_FORMAT,
+            }))
 
         row_offset = 1
         sum_mark_cell_map = dict()
         for student in students:
-            sheet.write(2 + row_offset, 0, student.name)
-            sheet.write(2 + row_offset, 1, student.group)
+            sheet.write(2 + row_offset, 0, student.name, book.add_format({
+                **COLUMN_BG_COLORED_FORMAT,
+                }))
+            sheet.write(2 + row_offset, 1, student.group, book.add_format({
+                **COLUMN_BG_COLORED_FORMAT,
+                }))
 
             col_offset = 1
             mark_cells = []
@@ -223,7 +255,7 @@ class ExcelService():
             sheet: xls_worksheet.Worksheet,
             groups: list[WrittenTestGroup],
             mark_cells: dict[str, dict[str, str]]) -> None:
-        sheet.set_column(0, 0, 80) # Column A
+        sheet.set_column(0, 0, 160) # Column A
         sheet.set_column(1, 1, 250) # Column B
         sheet.set_column(2, 2, 45) # Column C
 

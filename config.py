@@ -31,13 +31,13 @@ BOTTOM_BORDERED_FORMAT = {
         }
 
 COLUMN_BG_COLORED_FORMAT = {
-        'pattern': 2,
-        'bg_color': 'orange',
+        'pattern': 1,
+        'bg_color': '#FCE5CD',
         }
 
 ROW_BG_COLORED_FORMAT = {
-        'pattern': 4,
-        'bg_color': 'gold',
+        'pattern': 1,
+        'bg_color': '#FFF3CC',
         }
 
 WRAPPED_FORMAT = {
