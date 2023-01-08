@@ -147,8 +147,8 @@ class ExcelService():
             **BOTTOM_BORDERED_FORMAT,
             **ROW_BG_COLORED_FORMAT,
             }))
-        sheet.set_column(0, 0, 250, column_bg_colored_format) # Column A
-        sheet.set_column(1, 1, 80, book.add_format({
+        sheet.set_column_pixels(0, 0, 250, column_bg_colored_format) # Column A
+        sheet.set_column_pixels(1, 1, 80, book.add_format({
             **RIGHT_BORDERED_FORMAT,
             **COLUMN_BG_COLORED_FORMAT,
             })) # Column B
@@ -159,11 +159,11 @@ class ExcelService():
         col_offset = 1
         mark_cells = []
         for question in questions:
-            sheet.set_column(1 + col_offset, 1 + col_offset, 350)
+            sheet.set_column_pixels(1 + col_offset, 1 + col_offset, 350)
             sheet.write(0, 1 + col_offset, question.question, wrapped_format)
             sheet.write(1, 1 + col_offset, question.answer, wrapped_format)
 
-            sheet.set_column(1 + col_offset + 1, 1 + col_offset + 1, 45, right_bordered_format)
+            sheet.set_column_pixels(1 + col_offset + 1, 1 + col_offset + 1, 45, right_bordered_format)
             sheet.write(0, 1 + col_offset + 1, 'Балл', centered_heading_format)
             mark_cell = xls_utility.xl_rowcol_to_cell(1, 1 + col_offset + 1)
             mark_cells.append(mark_cell)
@@ -171,7 +171,7 @@ class ExcelService():
 
             col_offset += 2
 
-        sheet.set_column(1 + col_offset, 1 + col_offset, 55)
+        sheet.set_column_pixels(1 + col_offset, 1 + col_offset, 55)
         sheet.write(0, 1 + col_offset, 'Сумма', centered_heading_format)
         sheet.write(1, 1 + col_offset, f"=SUM({', '.join(mark_cells)})")
 
@@ -223,9 +223,9 @@ class ExcelService():
             sheet: xls_worksheet.Worksheet,
             groups: list[WrittenTestGroup],
             mark_cells: dict[str, dict[str, str]]) -> None:
-        sheet.set_column(0, 0, 80) # Column A
-        sheet.set_column(1, 1, 250) # Column B
-        sheet.set_column(2, 2, 45) # Column C
+        sheet.set_column_pixels(0, 0, 80) # Column A
+        sheet.set_column_pixels(1, 1, 250) # Column B
+        sheet.set_column_pixels(2, 2, 45) # Column C
 
         heading_format = book.add_format(HEADING_FORMAT)
         centered_heading_format = book.add_format(CENTERED_HEADING_FORMAT)
