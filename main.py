@@ -1,28 +1,26 @@
-# import dotenv
-
 import os
-import pathlib
-import shutil
-from src.services.bot import Bot
-from src.services.tests import TestsTable
-from src.models.test import RawTest
+import dotenv
 
+from src.services.bot import Bot
 
 
 def main() -> None:
-    # dotenv.load_dotenv()
-    token = '5740305400:AAFrJczOygRrm4208qABXXe5UuLRFoaUSxI' # dotenv.dotenv_values()['telegram_token']
-    db_url = 'mongodb://localhost:27017'
-    # date_format = dotenv.dotenv_values()['date_format']
-
-    shutil.rmtree('assets/runtime')
-    pathlib.Path('assets/runtime/tests').mkdir(parents=True, exist_ok=True)
-    pathlib.Path('assets/runtime/results').mkdir(parents=True, exist_ok=True)
+    dotenv.load_dotenv()
+    env = os.environ
+    mandatory_vars = [
+            'TELEGRAM_TOKEN',
+            'MONGODB_DATABASE',
+            'MONGODB_USERNAME',
+            'MONGODB_PASSWORD',
+            'MONGODB_HOSTNAME',
+            ]
+    for key in mandatory_vars:
+        if key not in env:
+            raise Exception('One of mandatory environment variables is not provided')
+    db_uri = f'mongodb://{env["MONGODB_USERNAME"]}:{env["MONGODB_PASSWORD"]}@{env["MONGODB_HOST"]}:27017/{env["MONGODB_DATABASE"]}?authSource=admin'
     
-    bot = Bot(token, db_url) #, date_format)
+    bot = Bot(env['TELEGRAM_TOKEN'], db_uri)
     bot.idle()
-    # tests = TestsTable()
-    # tests.create_test(RawTest('шаблон летучки.xlsx'))
 
 
 if __name__ == '__main__':

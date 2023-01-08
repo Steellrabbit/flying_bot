@@ -1,13 +1,17 @@
-from imghdr import tests
 import telegram as tg
 import telegram.ext as tg_ext
+
+from config import RUNTIME_FOLDER, TESTS_FOLDERNAME, WRITTEN_TESTS_FOLDERNAME
 
 from ..models.test import RawTest
 from ..models.user import RawStudent
 from ..models.group import RawGroup
 
 from .db import DataBase
-from .dialogs import TEST_QUESTION_ID, StudentSettingsBranch, TutorCheckBranch, TutorSettingsBranch, TutorTestBranch, TutorTestSuccessOptions, student_abort_test, student_check_branch, student_exists_branch, student_settings_branch, student_test_branch, tutorStartDialog
+from .dialogs import TEST_QUESTION_ID, StudentSettingsBranch, TutorCheckBranch,\
+        TutorSettingsBranch, TutorTestBranch, TutorTestSuccessOptions,\
+        student_abort_test, student_check_branch, student_exists_branch,\
+        student_settings_branch, student_test_branch, tutorStartDialog
 
 class Bot:
 
@@ -74,7 +78,9 @@ class Bot:
         elif (previousMessageId in [TutorSettingsBranch.ENTER_TESTS.value.id, TutorSettingsBranch.FILE_FORMAT_ERROR.value.id]):
             if update.message.document:
                 self.__download_file(update, context, 'tests/')
-                self.__db.tests.create(RawTest('assets/runtime/tests/' + update.message.document.file_name))
+                self.__db.tests.create(RawTest(\
+                    f'{RUNTIME_FOLDER}/{TESTS_FOLDERNAME}/' +\
+                    update.message.document.file_name))
                 return
 
         # Привет!
@@ -127,7 +133,9 @@ class Bot:
         elif (previousMessageId == TutorCheckBranch.SEND_FILE.value.id):
             if update.message.document:
                 self.__download_file(update, context, 'results/')
-                finished_test = self.__db.tests.post_finished('assets/runtime/results/' + update.message.document.file_name)
+                finished_test = self.__db.tests.post_finished(\
+                        f'{RUNTIME_FOLDER}/{WRITTEN_TESTS_FOLDERNAME}/' +\
+                        update.message.document.file_name)
                 test_name = self.__db.tests.get('_id', finished_test.test_id).name
                 for test in finished_test.student_tests:
                     max_mark = self.__db.tests.get_variant(finished_test.test_id, 'id', test.variant_id).sum_max_mark
@@ -163,7 +171,7 @@ class Bot:
 
     def __download_file(self, update, context, subpath = ''):
         name = update.message.document.file_name
-        with open('assets/runtime/' + subpath + name, 'wb') as f:
+        with open(f'{RUNTIME_FOLDER}' + subpath + name, 'wb') as f:
             context.bot.get_file(update.message.document).download(out=f)
 
     # def __get_group_id(self, name):

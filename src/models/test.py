@@ -11,26 +11,19 @@ class TestAnswerType(Enum):
     MULTIPLE_CHOICE = "множественный выбор"
     SINGLE_CHOICE = "единичный выбор"
 
+TestAnswerValue = str | int | list[int]
+
 @dataclass
 class RawTestQuestion:
-    id: uuid.UUID
     type: TestAnswerType
     text: str
     answer_variants: list[str] | None
-    answer: str | int | list[int] | None
+    answer: TestAnswerValue | None
     max_mark: float
 
 @dataclass
-class LectureTestQuestion(RawTestQuestion):
-    type: TestAnswerType.LECTURE
-    answer: str
-
-@dataclass
-class FreeTestQuestion(RawTestQuestion):
-    type: TestAnswerType.FREE
-    answer: None
-
-TestQuestion = LectureTestQuestion | FreeTestQuestion
+class TestQuestion(RawTestQuestion):
+    id: uuid.UUID
 
 # endregion
 
@@ -68,7 +61,7 @@ class Test(RawTest):
 class TestAnswer:
     id: uuid.UUID
     question_id: uuid.UUID
-    text: str | list[int] | int
+    value: TestAnswerValue 
     mark: float | None
 
 @dataclass

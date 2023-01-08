@@ -1,18 +1,18 @@
-from typing import Any
+from typing import Any, cast
 from pymongo import database
 
 import uuid
 
+from config import USER_COLLECTION_NAME
+
 from ..models.user import User, Student, RawStudent
 
-
-USER_COLLECTION = 'users'
 
 class UsersTable():
 
     def __init__(self,
             db: database.Database) -> None:
-        self.__collection = db[USER_COLLECTION]
+        self.__collection = db[USER_COLLECTION_NAME]
 
 
     # region Tutor
@@ -25,10 +25,13 @@ class UsersTable():
         doc = { 'telegram_id': id, 'is_tutor': True }
         insert_result = self.__collection.insert_one(doc)
         found = self.__collection.find_one({ '_id': insert_result.inserted_id })
-        return self.__user_from_document(found)
+        return self.__user_from_document(cast(dict, found))
 
     def __user_from_document(self, doc: dict) -> User:
         return User(doc['telegram_id'], doc['is_tutor'])
+
+    def remove_tutor(self) -> None:
+        self.__collection.delete_one({ '$eq': { 'is_tutor': True } })
 
     # endregion
 
@@ -39,7 +42,7 @@ class UsersTable():
         doc = { 'telegram_id': source.id, 'is_tutor': False, 'name': source.name, 'group_id': source.group_id }
         insert_result = self.__collection.insert_one(doc)
         found = self.__collection.find_one({ '_id': insert_result.inserted_id })
-        return self.__student_from_document(found)
+        return self.__student_from_document(cast(dict, found))
 
     def get_students(self, group_id: uuid.UUID) -> list[Student]:
         found = self.__collection.find({ 'is_tutor': False, 'group_id': group_id })
@@ -52,6 +55,9 @@ class UsersTable():
 
     def __student_from_document(self, doc: dict) -> Student:
         return Student(doc['telegram_id'], doc['is_tutor'], doc['name'], doc['group_id'])
+
+    def remove_students(self) -> None:
+        self.__collection.delete_many({ '$eq': { 'is_tutor': False } })
 
     # endregion
 
@@ -66,5 +72,8 @@ class UsersTable():
     def get_users(self) -> list[User]:
         found = self.__collection.find()
         return list(map(lambda doc: self.__user_from_document(doc), found))
+
+    def remove_users(self) -> None:
+        self.__collection.delete_many({})
 
     # endregion
