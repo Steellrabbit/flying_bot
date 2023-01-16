@@ -9,7 +9,7 @@ from ..models.group import RawGroup
 
 from .db import DataBase
 from .dialogs import TEST_QUESTION_ID, StudentSettingsBranch, TutorCheckBranch,\
-        TutorSettingsBranch, TutorTestBranch, TutorTestSuccessOptions,\
+        TutorSettingsBranch, TutorSettingsClearDatabaseOptions, TutorTestBranch, TutorTestSuccessOptions,\
         student_abort_test, student_check_branch, student_exists_branch,\
         student_settings_branch, student_test_branch, tutorStartDialog
 
@@ -67,7 +67,6 @@ class Bot:
         previousMessageId = self.__dialogs[tg_user.id]['answer'].text.id
 
         # Введите группы этого семестра списком (элементы разделяйте переносом строки)
-        # Для пропуска этого шага отправьте '-'
         if (previousMessageId == TutorSettingsBranch.ENTER_GROUPS.value.id):
             if update.message.text != '-':
                 for name in update.message.text.split('\n'):
@@ -77,11 +76,16 @@ class Bot:
         # Пришлите файл в формате .xlsx
         elif (previousMessageId in [TutorSettingsBranch.ENTER_TESTS.value.id, TutorSettingsBranch.FILE_FORMAT_ERROR.value.id]):
             if update.message.document:
-                self.__download_file(update, context, 'tests/')
+                self.__download_file(update, context, f'{TESTS_FOLDERNAME}/')
                 self.__db.tests.create(RawTest(\
                     f'{RUNTIME_FOLDER}/{TESTS_FOLDERNAME}/' +\
                     update.message.document.file_name))
                 return
+        
+        # База успешно очищена, можно заново настраивать бота.
+        elif (previousMessageId == TutorSettingsBranch.CLEAR_DATABASE.value.id):
+            if update.message.text == TutorSettingsClearDatabaseOptions.CONFIRM.value:
+                self.__db.clear_database()
 
         # Привет!
         # Из какой ты группы?
@@ -132,7 +136,7 @@ class Bot:
         # Оцените результаты, выставьте баллы в соответствующую графу и пришлите изменённый файл в ответном сообщении
         elif (previousMessageId == TutorCheckBranch.SEND_FILE.value.id):
             if update.message.document:
-                self.__download_file(update, context, 'results/')
+                self.__download_file(update, context, f'{WRITTEN_TESTS_FOLDERNAME}/')
                 finished_test = self.__db.tests.post_finished(\
                         f'{RUNTIME_FOLDER}/{WRITTEN_TESTS_FOLDERNAME}/' +\
                         update.message.document.file_name)
@@ -150,16 +154,25 @@ class Bot:
 
 
         #answer block
-        print('User:', self.__db.users.get_user(tg_user.id))
+        print('\nUser:', self.__db.users.get_user(tg_user.id))
         
         try:
             self.__dialogs[tg_user.id]['answer'] = self.__dialogs[tg_user.id]['generator'].send(update.message)
         except StopIteration:
-            del self.__dialogs[tg_user.id]
-            return self.__message_handler(update, context)
+            self.__restart_dialog(update, context, tg_user.id)
 
         print("\nAnswer: %r" % self.__dialogs[tg_user.id]['answer'].text.messages)
         self.__send_message(context, tg_user.id, self.__dialogs[tg_user.id]['answer'])
+
+        #Рестарт диалога, если конец ветки
+        sentMessageId = self.__dialogs[tg_user.id]['answer'].text.id
+        if  (sentMessageId == TutorSettingsBranch.SUCCESS.value.id) or \
+            (sentMessageId == TutorTestBranch.FINISH.value.id) or \
+            (sentMessageId == TutorCheckBranch.SUCCESS.value.id) or \
+            (sentMessageId == TutorSettingsBranch.CLEAR_DATABASE_SUCCESS.value.id) or \
+            (sentMessageId == TutorSettingsBranch.CLEAR_DATABASE_DECLINE.value.id):
+            self.__restart_dialog(update, context, tg_user.id)
+
 
     #endregion
 
@@ -169,9 +182,13 @@ class Bot:
         for message in answer.text.messages:
             context.bot.sendMessage(chat_id=user_id, text=message, reply_markup=answer.markup)
 
+    def __restart_dialog(self, update, context, user_id):
+        del self.__dialogs[user_id]
+        return self.__message_handler(update, context)
+
     def __download_file(self, update, context, subpath = ''):
         name = update.message.document.file_name
-        with open(f'{RUNTIME_FOLDER}' + subpath + name, 'wb') as f:
+        with open(f'{RUNTIME_FOLDER}/' + subpath + name, 'wb') as f:
             context.bot.get_file(update.message.document).download(out=f)
 
     # def __get_group_id(self, name):
