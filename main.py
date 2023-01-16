@@ -18,6 +18,9 @@ def main() -> None:
         if key not in env:
             raise Exception('One of mandatory environment variables is not provided')
     db_uri = f'mongodb://{env["MONGODB_USERNAME"]}:{env["MONGODB_PASSWORD"]}@{env["MONGODB_HOST"]}:27017/{env["MONGODB_DATABASE"]}?authSource=admin'
+        
+    # Для локального подъёма закомментить mandatory_vars и заменить db_uri на
+    # db_uri = f'mongodb://{env["MONGODB_HOST"]}:27017/{env["MONGODB_DATABASE"]}?authSource=admin'
     
     bot = Bot(env['TELEGRAM_TOKEN'], db_uri)
     bot.idle()

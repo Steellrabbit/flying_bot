@@ -273,8 +273,6 @@ class TestsTable():
             raise Exception('Written test was not found')
         student_test.answers.append(answer)
 
-        print(written_test)
-
         self.__written_collection.update_one({ '_id': written_test.id }, {'$set': self.__written_to_document(written_test)})
 
     def __written_to_document(self, test: WrittenTest) -> dict:

@@ -1,7 +1,7 @@
 from enum import Enum
 from typing import List
 import uuid
-from telegram import ReplyKeyboardMarkup
+from telegram import ReplyKeyboardMarkup, ReplyKeyboardRemove
 
 from ..models.group import Group
 from ..models.test import Test, TestQuestion
@@ -19,7 +19,7 @@ class DialogAnswerText():
         else:
             self.id = uuid.uuid4()
 class DialogAnswer():
-    def __init__(self, text: DialogAnswerText, markup: ReplyKeyboardMarkup = None):
+    def __init__(self, text: DialogAnswerText, markup: ReplyKeyboardMarkup = ReplyKeyboardRemove()):
         self.text = text
         self.markup = markup
 
@@ -28,17 +28,29 @@ class TutorDialogOptions(Enum):
     TEST = "Начать летучку"
     CHECK = "Проверить летучки"
 
+class TutorSettingsBranchOptions(Enum):
+    GROUPS = "Добавить группы"
+    TESTS = "Загрузить летучки"
+    DATABASE = "Очистить базу"
+
 class TutorSettingsEnterTestsOptions(Enum):
     FINISH = "Загрузил все летучки"
+
+class TutorSettingsClearDatabaseOptions(Enum):
+    CONFIRM = "Да, удалить всё!"
+    DECLINE = "Нет, я передумал"
 class TutorTestSuccessOptions(Enum):
     STOP = "Остановить летучку"
-
 class TutorStartDialog(Enum):
     HELLO = DialogAnswerText("Здравствуйте \nЧто необходимо сделать?")
 class TutorSettingsBranch(Enum):
-    ENTER_GROUPS = DialogAnswerText("Введите группы этого семестра списком (элементы разделяйте переносом строки)\nДля пропуска этого шага отправьте '-'")
+    CHOOSE_OPTION = DialogAnswerText("Выберите, что хотите настроить")
+    ENTER_GROUPS = DialogAnswerText("Введите группы этого семестра списком (элементы разделяйте переносом строки)")
     ENTER_TESTS = DialogAnswerText("Загрузите файлы с летучками по этому шаблону. Будьте внимательны, название файла будет названием летучки.")
     MORE_TESTS = DialogAnswerText("Вы можете загрузить ещё файлы, либо завершить настройку.")
+    CLEAR_DATABASE = DialogAnswerText("Вы точно хотите удалить все данные из базы?")
+    CLEAR_DATABASE_SUCCESS = DialogAnswerText("База успешно очищена, можно заново настраивать бота.")
+    CLEAR_DATABASE_DECLINE = DialogAnswerText("Хорошо, не будем очищать базу.")
     FILE_FORMAT_ERROR = DialogAnswerText("Пришлите файл в формате .xlsx")
     SUCCESS = DialogAnswerText("Настройка завершена")
 
@@ -83,11 +95,21 @@ def tutorStartDialog(tests: List[Test], groups: List[Group]):
         yield from tutor_check_branch()
 
 def tutor_settings_branch():
-    yield DialogAnswer(TutorSettingsBranch.ENTER_GROUPS.value)
-    answer = yield DialogAnswer(TutorSettingsBranch.ENTER_TESTS.value, create_keyboard([[option.value for option in TutorSettingsEnterTestsOptions]]))
-    while not(answer.text == TutorSettingsEnterTestsOptions.FINISH.value):
-        answer = yield DialogAnswer([])
-    yield DialogAnswer(TutorSettingsBranch.SUCCESS.value)
+    answer = yield DialogAnswer(TutorSettingsBranch.CHOOSE_OPTION.value, create_keyboard([[option.value for option in TutorSettingsBranchOptions]]))
+    if answer.text == TutorSettingsBranchOptions.GROUPS.value:
+        yield DialogAnswer(TutorSettingsBranch.ENTER_GROUPS.value)
+        yield DialogAnswer(TutorSettingsBranch.SUCCESS.value)
+    elif answer.text == TutorSettingsBranchOptions.TESTS.value:
+        answer = yield DialogAnswer(TutorSettingsBranch.ENTER_TESTS.value, create_keyboard([[option.value for option in TutorSettingsEnterTestsOptions]]))
+        while not(answer.text == TutorSettingsEnterTestsOptions.FINISH.value):
+            answer = yield DialogAnswer([])
+        yield DialogAnswer(TutorSettingsBranch.SUCCESS.value)
+    elif answer.text == TutorSettingsBranchOptions.DATABASE.value:
+        answer = yield DialogAnswer(TutorSettingsBranch.CLEAR_DATABASE.value, create_keyboard([[option.value for option in TutorSettingsClearDatabaseOptions]]))
+        if answer.text == TutorSettingsClearDatabaseOptions.CONFIRM.value:
+            yield DialogAnswer(TutorSettingsBranch.CLEAR_DATABASE_SUCCESS.value)
+        if answer.text == TutorSettingsClearDatabaseOptions.DECLINE.value:
+            yield DialogAnswer(TutorSettingsBranch.CLEAR_DATABASE_DECLINE.value)
 
 def tutor_test_branch(tests: List[Test], groups: List[Group]):
     yield DialogAnswer(TutorTestBranch.SELECT_TEST.value, create_keyboard([[test.name for test in tests]]))
