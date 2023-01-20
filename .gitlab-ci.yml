@@ -1,5 +1,5 @@
 include:
     - project: 'iu5/infrastructure/department-services/pipelines'
-      file: 'docker/deploy-prod.yml'
+      file: 'docker/release-image.yml'
     - project: 'iu5/infrastructure/department-services/pipelines'
       file: 'tests/test-python.yml'  
