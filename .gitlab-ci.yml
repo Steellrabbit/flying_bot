@@ -1,0 +1,7 @@
+include:
+    - project: 'iu5/infrastructure/department-services/pipelines'
+      ref: latest
+      file: 'docker/deploy-prod.yml'
+    - project: 'iu5/infrastructure/department-services/pipelines'
+      ref: latest
+      file: 'tests/test-python.yml'  
