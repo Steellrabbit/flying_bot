@@ -5,3 +5,7 @@ run-tests:
   script: ["echo Here should be tests"]
   tags:
     - prod
+variables:
+  CI_SERVER_PORT: 443
+  CI_SERVER_PROTOCOL: https
+  CI_SERVER_URL: https://bmstu.codes
