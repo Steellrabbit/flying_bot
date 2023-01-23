@@ -4,7 +4,14 @@ include:
     - project: 'iu5/infrastructure/department-services/pipelines'
       file: 'tests/test-python.yml'  
 
-variables:
-  CI_SERVER_PORT: 443
-  CI_SERVER_PROTOCOL: https
-  CI_SERVER_URL: https://bmstu.codes
+before_script:
+  ## clean the working directory
+  - BUILD_DIR=/home/gitlab-runner/builds/$RUNNER_TOKEN/0
+  - CLONE_DIR="$BUILD_DIR/$CI_PROJECT_PATH"
+  - cd $BUILD_DIR
+  - rm -rf $CLONE_DIR
+  - mkdir -p $CLONE_DIR
+
+  ## clone the project each time (inefficient, consider performing fetch instead if it already exists)
+  - git clone git@bmstu.codes:/${CI_PROJECT_PATH}.git $CLONE_DIR
+  - cd $CLONE_DIR
