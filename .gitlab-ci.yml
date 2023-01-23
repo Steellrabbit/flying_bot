@@ -1,17 +1,7 @@
-include:
-    - project: 'iu5/infrastructure/department-services/pipelines'
-      file: 'docker/release-image.yml'
-    - project: 'iu5/infrastructure/department-services/pipelines'
-      file: 'tests/test-python.yml'  
-
-before_script:
-  ## clean the working directory
-  - BUILD_DIR=/home/gitlab-runner/builds/$RUNNER_TOKEN/0
-  - CLONE_DIR="$BUILD_DIR/$CI_PROJECT_PATH"
-  - cd $BUILD_DIR
-  - rm -rf $CLONE_DIR
-  - mkdir -p $CLONE_DIR
-
-  ## clone the project each time (inefficient, consider performing fetch instead if it already exists)
-  - git clone git@bmstu.codes:/${CI_PROJECT_PATH}.git $CLONE_DIR
-  - cd $CLONE_DIR
+run-tests:
+  stage: test
+  rules:
+    - if: $CI_COMMIT_BRANCH != $CI_DEFAULT_BRANCH
+  script: ["echo Here should be tests"]
+  tags:
+    - prod
