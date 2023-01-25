@@ -1,0 +1,47 @@
+version: '3'
+
+services:
+  telegram_bot:
+    image: ${TELEGRAM_BOT_DOCKER_IMAGE}
+    restart: unless-stopped
+    environment:
+      TELEGRAM_TOKEN: ${TELEGRAM_TOKEN}
+      MONGODB_DATABASE: ${MONGODB_DATABASE}
+      MONGODB_USERNAME: ${MONGODB_USERNAME}
+      MONGODB_PASSWORD: ${MONGODB_PASSWORD}
+      MONGODB_HOSTNAME: mongodb
+    volumes:
+      - botdata:/app/telegram_bot
+    depends_on:
+      - mongodb
+    networks:
+      - botnetwork
+      - dbnetwork
+
+  mongodb:
+    image: mongo:4.2.23
+    container_name: mongodb
+    restart: unless-stopped
+    command: mongod --auth
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGODB_DATABASE}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGODB_PASSWORD}
+      MONGO_INITDB_DATABASE: ${MONGODB_DATABASE}
+      MONGODB_DATA_DIR: /app/mongodb
+      MONDODB_LOG_DIR: /dev/null
+    volumes:
+      - mongodbdata:/app/mongodb
+    networks:
+      - dbnetwork
+
+networks:
+  botnetwork:
+    driver: bridge
+  dbnetwork:
+    driver: bridge
+
+volumes:
+  mongodbdata:
+    driver: local
+  botdata:
+    driver: local
