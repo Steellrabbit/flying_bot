@@ -9,7 +9,7 @@ services:
       MONGODB_DATABASE: ${MONGODB_DATABASE}
       MONGODB_USERNAME: ${MONGODB_USERNAME}
       MONGODB_PASSWORD: ${MONGODB_PASSWORD}
-      MONGODB_HOSTNAME: mongodb
+      MONGODB_HOST: mongodb
     volumes:
       - botdata:/app/telegram_bot
     depends_on:
