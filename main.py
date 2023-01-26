@@ -12,7 +12,7 @@ def main() -> None:
             'MONGODB_DATABASE',
             'MONGODB_USERNAME',
             'MONGODB_PASSWORD',
-            'MONGODB_HOSTNAME',
+            'MONGODB_HOST',
             ]
     for key in mandatory_vars:
         if key not in env:
