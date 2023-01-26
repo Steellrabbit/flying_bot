@@ -1,9 +1,5 @@
-FROM python:3.11.1-alpine3.17
-WORKDIR /app/telegram_bot
-
-RUN apk add --no-cache gcc g++
-COPY requirements.txt requirements.txt
-RUN pip install -r requirements.txt
+FROM docker.io/balaant/iu5-common-python:3
+WORKDIR /usr/app
 
 COPY . .
 CMD python main.py
