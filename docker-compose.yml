@@ -2,7 +2,7 @@ version: '3'
 
 services:
   telegram_bot:
-    image: ${TELEGRAM_BOT_DOCKER_IMAGE}
+    build: .
     restart: unless-stopped
     environment:
       TELEGRAM_TOKEN: ${TELEGRAM_TOKEN}
