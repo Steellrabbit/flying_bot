@@ -11,7 +11,7 @@ services:
       MONGODB_PASSWORD: ${MONGODB_PASSWORD}
       MONGODB_HOST: ${MONGODB_HOST}
     volumes:
-      - botdata:/usr/app
+      - botdata:/usr/app/botdata
     depends_on:
       - mongodb
     networks:
