@@ -1,4 +1,4 @@
-FROM docker.io/balaant/iu5-common-python:3
+FROM docker.io/balaant/iu5-common-python:latest
 WORKDIR /usr/app
 
 COPY . .
