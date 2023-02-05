@@ -1,0 +1,3 @@
+include:
+    - project: 'iu5/infrastructure/department-services/pipelines'
+      file: 'compose-python.yml'

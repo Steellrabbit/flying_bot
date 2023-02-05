@@ -2,17 +2,16 @@ version: '3'
 
 services:
   telegram_bot:
-    build: .
-    container_name: telegram_bot
+    image: ${TELEGRAM_BOT_DOCKER_IMAGE}
     restart: unless-stopped
     environment:
-      TELEGRAM_TOKEN: 5740305400:AAFrJczOygRrm4208qABXXe5UuLRFoaUSxI
-      MONGODB_DATABASE: flying-bot
-      MONGODB_USERNAME: flying-bot-admin
-      MONGODB_PASSWORD: 5JwDoU44n0H5fgG1YUC
-      MONGODB_HOST: mongodb
+      TELEGRAM_TOKEN: ${TELEGRAM_TOKEN}
+      MONGODB_DATABASE: ${MONGODB_DATABASE}
+      MONGODB_USERNAME: ${MONGODB_USERNAME}
+      MONGODB_PASSWORD: ${MONGODB_PASSWORD}
+      MONGODB_HOST: ${MONGODB_HOST}
     volumes:
-      - botdata:/app/telegram_bot
+      - botdata:/usr/app/botdata
     depends_on:
       - mongodb
     networks:
@@ -25,16 +24,16 @@ services:
     restart: unless-stopped
     command: mongod --auth
     environment:
-      MONGO_INITDB_ROOT_USERNAME: flying-bot-admin
-      MONGO_INITDB_ROOT_PASSWORD: 5JwDoU44n0H5fgG1YUC
-      MONGO_INITDB_DATABASE: flying-bot
+      MONGO_INITDB_ROOT_USERNAME: ${MONGODB_DATABASE}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGODB_PASSWORD}
+      MONGO_INITDB_DATABASE: ${MONGODB_DATABASE}
       MONGODB_DATA_DIR: /app/mongodb
       MONDODB_LOG_DIR: /dev/null
     volumes:
       - mongodbdata:/app/mongodb
     networks:
       - dbnetwork
-        
+
 networks:
   botnetwork:
     driver: bridge
