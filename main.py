@@ -16,7 +16,7 @@ def main() -> None:
             ]
     for key in mandatory_vars:
         if key not in env:
-            raise Exception('Mandatory environment variables is not provided ' + key)
+            raise Exception('Mandatory environment variable is not provided ' + key)
     db_uri = f'mongodb://{env["MONGODB_USERNAME"]}:{env["MONGODB_PASSWORD"]}@{env["MONGODB_HOST"]}:27017/{env["MONGODB_DATABASE"]}?authSource=admin'
         
     # Для локального подъёма закомментить mandatory_vars и заменить db_uri на
