@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import List
+from typing import List, Union
 import uuid
 from telegram import ReplyKeyboardMarkup, ReplyKeyboardRemove
 
@@ -9,7 +9,7 @@ from ..models.test import Test, TestQuestion
 TEST_QUESTION_ID = uuid.uuid4()
 
 class DialogAnswerText():
-    def __init__(self, messages: str | List[str], id = None):
+    def __init__(self, messages: Union[str, List[str]], id = None):
         if type(messages) is str:
             self.messages = [messages]
         else:

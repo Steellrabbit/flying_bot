@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from typing import Union
 
 from .test import TestAnswerValue
 
@@ -6,7 +7,7 @@ from .test import TestAnswerValue
 @dataclass
 class WrittenTestStudentAnswer:
     value: TestAnswerValue
-    mark: float | None
+    mark: Union[float, None]
 
 @dataclass
 class WrittenTestQuestionData:
@@ -46,7 +47,7 @@ class WrittenTestExcel:
 @dataclass
 class UpdatedStudentData:
     name: str
-    marks: list[float | None]
+    marks: list[Union[float, None]]
 
 @dataclass
 class UpdatedTestExcel:

@@ -1,3 +1,4 @@
+from typing import Union
 import uuid
 from dataclasses import dataclass
 from enum import Enum
@@ -11,14 +12,14 @@ class TestAnswerType(Enum):
     MULTIPLE_CHOICE = "множественный выбор"
     SINGLE_CHOICE = "единичный выбор"
 
-TestAnswerValue = str | int | list[int]
+TestAnswerValue = Union[str, int, list[int]]
 
 @dataclass
 class RawTestQuestion:
     type: TestAnswerType
     text: str
-    answer_variants: list[str] | None
-    answer: TestAnswerValue | None
+    answer_variants: Union[list[str], None]
+    answer: Union[TestAnswerValue, None]
     max_mark: float
 
 @dataclass
@@ -62,23 +63,23 @@ class TestAnswer:
     id: uuid.UUID
     question_id: uuid.UUID
     value: TestAnswerValue 
-    mark: float | None
+    mark: Union[float, None]
 
 @dataclass
 class StudentWrittenTest:
     id: uuid.UUID
-    finish_time: str | None
+    finish_time: Union[str, None]
     student_id: int
     variant_id: uuid.UUID
     answers: list[TestAnswer]
-    sum_mark: float | None
+    sum_mark: Union[float, None]
 
 @dataclass
 class WrittenTest:
     id: uuid.UUID
     test_id: uuid.UUID
     start_time: str
-    finish_time: str | None
+    finish_time: Union[str, None]
     student_tests: list[StudentWrittenTest]
 
 # endregion
