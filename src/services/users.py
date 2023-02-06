@@ -1,4 +1,4 @@
-from typing import Any, cast
+from typing import Any, Union, cast
 from pymongo import database
 
 import uuid
@@ -48,7 +48,7 @@ class UsersTable():
         found = self.__collection.find({ 'is_tutor': False, 'group_id': group_id })
         return list(map(lambda doc: self.__student_from_document(doc), found))
 
-    def get_student(self, property: str, value: Any) -> Student | None:
+    def get_student(self, property: str, value: Any) -> Union[Student, None]:
         found = self.__collection.find_one({property: value})
         if found is None: return
         return self.__student_from_document(found)
@@ -64,7 +64,7 @@ class UsersTable():
 
     # region User
 
-    def get_user(self, id: int) -> User | None:
+    def get_user(self, id: int) -> Union[User, None]:
         found = self.__collection.find_one({ 'telegram_id': id })
         if found is None: return
         return self.__user_from_document(found)

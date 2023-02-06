@@ -1,6 +1,6 @@
 from pymongo import database
 
-from typing import Any, cast
+from typing import Any, Union, cast
 
 from config import GROUP_COLLECTION_NAME
 
@@ -23,7 +23,7 @@ class GroupsTable():
         found = self.__collection.find()
         return list(map(lambda doc: self.__from_document(doc), found))
 
-    def get(self, property: str, value: Any) -> Group | None:
+    def get(self, property: str, value: Any) -> Union[Group, None]:
         found = self.__collection.find_one({ property: value })
         if found is None: return
         return self.__from_document(found)

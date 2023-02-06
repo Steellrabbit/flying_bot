@@ -1,6 +1,6 @@
 import uuid
 import random
-from typing import Any, cast
+from typing import Any, Union, cast
 
 from pymongo import database
 import Levenshtein
@@ -42,7 +42,7 @@ class TestsTable():
 
         return self.__test_from_document(cast(dict, found))
 
-    def get(self, property: str, value: Any) -> Test | None:
+    def get(self, property: str, value: Any) -> Union[Test, None]:
         found = self.__collection.find_one({ property: value })
         if found is None: return
         return self.__test_from_document(found)
@@ -195,7 +195,7 @@ class TestsTable():
         found = self.__written_collection.find_one({ '_id': insert_result.inserted_id })
         return self.__written_from_document(cast(dict, found))
 
-    def get_written(self, property: str, value: Any) -> WrittenTest | None:
+    def get_written(self, property: str, value: Any) -> Union[WrittenTest, None]:
         found = self.__written_collection.find_one({ property: value })
         if found is None: return
         return self.__written_from_document(found)
@@ -242,10 +242,10 @@ class TestsTable():
 
 
     def get_student(self,
-            written_test_id: uuid.UUID | None,
+            written_test_id: Union[uuid.UUID, None],
             student_test_prop: str,
             value: Any,
-            written_test: WrittenTest | None = None) -> StudentWrittenTest | None:
+            written_test: Union[WrittenTest, None] = None) -> Union[StudentWrittenTest, None]:
         test = self.get_written('_id', written_test_id) if written_test_id else written_test
         if test is None: return None
         return get_from_list(test.student_tests, student_test_prop, value)
@@ -330,7 +330,7 @@ class TestsTable():
 
     def __check_answer(self,
             question: TestQuestion,
-            answer: TestAnswerValue) -> float | None:
+            answer: TestAnswerValue) -> Union[float, None]:
         """Checks test question answer and returns mark if possible"""
         if question.type == TestAnswerType.LECTURE.value:
             return Levenshtein.ratio(\
@@ -399,7 +399,7 @@ class TestsTable():
 
     # region Variants
 
-    def get_random_variant(self, test_id: uuid.UUID) -> TestVariant | None:
+    def get_random_variant(self, test_id: uuid.UUID) -> Union[TestVariant, None]:
         test = self.get('_id', test_id)
         if test is None: return None
         return random.choice(test.variants)
@@ -407,7 +407,7 @@ class TestsTable():
     def get_variant(self,
             test_id: uuid.UUID,
             variant_prop: str,
-            value: Any) -> TestVariant | None:
+            value: Any) -> Union[TestVariant, None]:
         test = self.get('_id', test_id)
         if test is None: return None
 
@@ -416,8 +416,8 @@ class TestsTable():
     def get_question(self,
             test_id: uuid.UUID,
             variant_id: uuid.UUID,
-            index: int | None = None,
-            question_id: uuid.UUID | None = None) -> TestQuestion | None:
+            index: Union[int, None] = None,
+            question_id: Union[uuid.UUID, None] = None) -> Union[TestQuestion, None]:
         variant = self.get_variant(test_id, 'id', variant_id)
         if variant is None: return None
 
